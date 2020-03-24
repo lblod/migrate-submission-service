@@ -19,7 +19,8 @@ app.get('/start-migration', async (req, res) => {
   //GET: InzendingVoorToezicht to do  (specifc rootNode)
   //This is the latest <http://data.lblod.info/form-nodes/77fa3d4b1310b08f49ca334ac13153a5953a9feba2c6bfb7c555dc9d45a1d1d7>
   let formNode = 'http://data.lblod.info/form-nodes/77fa3d4b1310b08f49ca334ac13153a5953a9feba2c6bfb7c555dc9d45a1d1d7';
-  let inzendingen = await getInzendingVoorToezichtToDo(formNode);
+  const bestuurseenheid = 'http://data.lblod.info/id/bestuurseenheden/974816591f269bb7d74aa1720922651529f3d3b2a787f5c60b73e5a0384950a4'; //gem Aalst
+  let inzendingen = await getInzendingVoorToezichtToDo(formNode, bestuurseenheid);
 
   console.log(`Found ${inzendingen.length} for formNode ${formNode}`);
 
