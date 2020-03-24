@@ -13,8 +13,15 @@ const FINISHED = 'http://lblod.data.gift/concepts/migrate-submission-service/sta
 const FAILED = 'http://lblod.data.gift/concepts/migrate-submission-service/status/failed';
 const DEFAULT_GRAPH = 'http://lblod.data.gift/resources/migrate-submission-service/graph/migration-graph';
 
-async function getInzendingVoorToezichtToDo(formNodeUri){
+async function getInzendingVoorToezichtToDo(formNodeUri, bestuurseenheid){
   //TODO: filter on specific formNode
+
+  let extraFilter = '';
+
+  if(bestuurseenheid){
+    extraFilter = `?inzendingUri <http://purl.org/dc/terms/subject> ${sparqlEscapeUri(bestuurseenheid)}.`;
+  }
+
   const q = `
     PREFIX toezicht: <http://mu.semte.ch/vocabularies/ext/supervision/>
     PREFIX nuao: <http://www.semanticdesktop.org/ontologies/2010/01/25/nuao#>
@@ -24,10 +31,17 @@ async function getInzendingVoorToezichtToDo(formNodeUri){
         ?inzendingUri a toezicht:InzendingVoorToezicht.
         ?form <http://mu.semte.ch/vocabularies/ext/hasInzendingVoorToezicht> ?inzendingUri.
         ?form <http://mu.semte.ch/vocabularies/ext/hasForm> ${sparqlEscapeUri(formNodeUri)}.
+        ${extraFilter}
         FILTER NOT EXISTS {
            ?task nuao:involves ?inzendingUri.
         }
       }
+
+      GRAPH <http://lblod.data.gift/resources/migrate-submission-service/graph/migration-graph> {
+         FILTER NOT EXISTS {
+           ?task nuao:involves ?inzendingUri.
+         }
+       }
     }
   `;
   const results = parseResult(await query(q));
@@ -134,7 +148,7 @@ async function constructInzendingContentTtl(inzendingUri){
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX toezicht: <http://mu.semte.ch/vocabularies/ext/supervision/>
     PREFIX melding: <http://lblod.data.gift/vocabularies/automatische-melding/>
-    PREFIX nmo: <http://nomisma.org/ontology.rdf#>
+    PREFIX nmo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nmo#>
     PREFIX adms: <http://www.w3.org/ns/adms#>
     PREFIX nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#>
     PREFIX elod: <http://linkedeconomy.org/ontology#>
