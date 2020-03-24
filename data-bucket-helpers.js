@@ -95,6 +95,8 @@ function extractSubmission(inzendingVoorToezicht, store, sourceGraph, codeListsG
   const newSubmission = namedNode(`http://data.lblod.info/submissions/${newUuid}`); //Note: will be reused
   store.add(newSubmission, MU('uuid'), newUuid, submissionGraph);
   store.add(newSubmission, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), MEB('Submission'), submissionGraph);
+
+  //TODO: in the old data this is not bestuursorgaan in tijd....
   mapPredicateToNewSubject(store, sourceGraph, DCT('subject'),
                            submissionGraph, newSubmission, PAV('createdBy'));
 
@@ -105,7 +107,7 @@ function extractSubmission(inzendingVoorToezicht, store, sourceGraph, codeListsG
                            submissionGraph, newSubmission, DCT('modified'));
 
   mapPredicateToNewSubject(store, sourceGraph, NMO('sentDate'),
-                           submissionGraph, newSubmission, DCT('dateSubmitted'));
+                           submissionGraph, newSubmission, NMO('sentDate'));
 
   const subStatus = store.match(inzendingVoorToezicht, ADMS('status'), undefined, sourceGraph)[0].object;
   store.add(newSubmission, ADMS('status'), getNewCodeListEquivalent(store, codeListsGraph, subStatus), submissionGraph);
@@ -147,7 +149,7 @@ function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeLists
   const newOrg = namedNode(`http://data.lblod.info/organisations/${uuid()}`);
   store.add(newOrg, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), EXT('Organization'), targetGraph);
   store.add(newSubDoc, ELI('is_about'), newOrg, targetGraph);
-  
+
   mapPredicateToNewSubject(store, sourceGraph, TOEZICHT('businessIdentifier'),
                            targetGraph, newOrg, DCT('identifier'));
   mapPredicateToNewSubject(store, sourceGraph, TOEZICHT('businessName'),
@@ -291,7 +293,7 @@ function extractFormData(inzendingVoorToezicht, store, sourceGraph, codeListsGra
   mapPredicateToNewSubject(store, sourceGraph, ELI('date_publication'),
                            targetGraph, formData, ELI('date_publication'));
 
-  mapPredicateToNewSubject(store, sourceGraph, ELI('passed_by'), 
+  mapPredicateToNewSubject(store, sourceGraph, ELI('passed_by'),
                            targetGraph, formData, ELI('passed_by'));
 
   mapPredicateToNewSubject(store, sourceGraph, ELI('is_about'),
