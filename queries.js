@@ -10,6 +10,7 @@ import request from 'request';
 
 const ONGOING = 'http://lblod.data.gift/concepts/migrate-submission-service/status/ongoing';
 const FINISHED = 'http://lblod.data.gift/concepts/migrate-submission-service/status/finished';
+const FAILED = 'http://lblod.data.gift/concepts/migrate-submission-service/status/failed';
 const DEFAULT_GRAPH = 'http://lblod.data.gift/resources/migrate-submission-service/graph/migration-graph';
 
 async function getInzendingVoorToezichtToDo(formNodeUri){
@@ -402,4 +403,6 @@ export { getInzendingVoorToezichtToDo,
          constructInzendingContentTtl,
          insertData,
          ONGOING,
-         FINISHED }
+         FINISHED,
+         FAILED
+       }
