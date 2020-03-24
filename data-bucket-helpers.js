@@ -114,7 +114,7 @@ function extractSubmission(inzendingVoorToezicht, store, sourceGraph, codeListsG
   store.add(newSubmission, DCT('source'), inzendingVoorToezicht, submissionGraph);
   const files = store.match(inzendingVoorToezicht, NIE('hasPart'), undefined, sourceGraph);
   files.forEach(file => {
-    store.add(newSubmission, DCT('hasPart'), file.object, submissionGraph);
+    store.add(newSubmission, NIE('hasPart'), file.object, submissionGraph);
   });
   return newSubmission;
 }
