@@ -85,7 +85,7 @@ function createFileTtlMetaData(store, fileGraph){
   store.add(formTtlFile, DCT('format'), 'text/turtle', fileGraph);
   store.add(formTtlFile, DCT('format'), 'text/turtle', fileGraph);
   store.add(formTtlFile, DBPEDIA('fileExtension'), 'ttl', fileGraph);
-
+  store.add(formTtlFile, DCT('type'), namedNode('http://data.lblod.gift/concepts/form-data-file-type'), fileGraph);
   return formTtlFile;
 }
 
@@ -190,10 +190,11 @@ function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeLists
     store.add(newZitting, LBLODBESLUIT('besluit:heeftNotulen'), newSubDoc, targetGraph);
   }
   else {
-    const targetPredicate = getNewCodeListEquivalent(store, codeListsGraph, typeInzending);
-    if(!targetPredicate){
+    const targetObject = getNewCodeListEquivalent(store, codeListsGraph, typeInzending);
+    if(!targetObject){
       throw new Error(`No codelist equivalent found for ${typeInzending.value}, inzending: ${inzendingVoorToezicht.value}`);
     }
+    store.add(newSubDoc, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), targetObject, targetGraph);
     // a very complex path needs to be generated
     const bap = namedNode(`http://data.lblod.info/behandeling-van-agendapunten/${uuid()}`);
     const ap = namedNode(`http://data.lblod.info/agendapunten/${uuid()}`);
@@ -209,8 +210,11 @@ function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeLists
   mapPredicateToNewSubject(store, sourceGraph, TOEZICHT('datePublicationWebapp'),
                            targetGraph, newSubDoc, ELI('date_publication'));
 
-  mapPredicateToNewSubject(store, sourceGraph, TOEZICHT('regulationType'),
-                           targetGraph, newSubDoc, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'));
+  const regulationType = store.match(inzendingVoorToezicht, TOEZICHT('regulationType'), undefined, sourceGraph)[0];
+  if(regulationType){
+    store.add(newSubDoc, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+              getNewCodeListEquivalent(store, codeListsGraph, regulationType.object), targetGraph);
+  }
 
   mapPredicateToNewSubject(store, sourceGraph, TOEZICHT('decidedBy'),
                            targetGraph, newSubDoc, ELI('passed_by'));
