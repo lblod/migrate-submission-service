@@ -112,6 +112,10 @@ function extractSubmission(inzendingVoorToezicht, store, sourceGraph, codeListsG
   const subStatus = store.match(inzendingVoorToezicht, ADMS('status'), undefined, sourceGraph)[0].object;
   store.add(newSubmission, ADMS('status'), getNewCodeListEquivalent(store, codeListsGraph, subStatus), submissionGraph);
   store.add(newSubmission, DCT('source'), inzendingVoorToezicht, submissionGraph);
+  const files = store.match(inzendingVoorToezicht, NIE('hasPart'), undefined, sourceGraph);
+  files.forEach(file => {
+    store.add(newSubmission, DCT('hasPart'), file.object, submissionGraph);
+  });
   return newSubmission;
 }
 
@@ -125,7 +129,7 @@ function extractSubmittedDocument(inzendingVoorToezicht, store, sourceGraph, cod
   //the links need to be there too
   const files = store.match(inzendingVoorToezicht, NIE('hasPart'), undefined, sourceGraph);
   files.forEach(file => {
-    store.add(newSubDoc, NIE('hasPart'), file.object, targetGraph);
+    store.add(newSubDoc, DCT('hasPart'), file.object, targetGraph);
   });
 
   store.add(submission, DCT('subject'), newSubDoc, targetGraph);
@@ -236,7 +240,7 @@ function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeLists
 
   const files = store.match(inzendingVoorToezicht, NIE('hasPart'), undefined, sourceGraph);
   files.forEach(file => {
-    store.add(newSubDoc, NIE('hasPart'), file.object, targetGraph);
+    store.add(newSubDoc, DCT('hasPart'), file.object, targetGraph);
     store.add(file.object, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), namedNode('http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#FileDataObject'), targetGraph);
   });
 
@@ -244,7 +248,7 @@ function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeLists
   fileAddresses.forEach(url => {
     const addUuid = uuid();
     const newFileAdd =  namedNode(`http://data.lblod.info/remote-data-objects/${addUuid}`);
-    store.add(newSubDoc, NIE('hasPart'), newFileAdd, targetGraph);
+    store.add(newSubDoc, DCT('hasPart'), newFileAdd, targetGraph);
     store.add(newFileAdd, MU('uuid'), addUuid, targetGraph);
     store.add(newFileAdd, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), namedNode('http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#RemoteDataObject'), targetGraph);
 
@@ -333,14 +337,11 @@ function extractFormData(inzendingVoorToezicht, store, sourceGraph, codeListsGra
   mapPredicateToNewSubject(store, sourceGraph, RDFS('comment'),
                            targetGraph, formData, RDFS('comment'));
 
-  mapPredicateToNewSubject(store, sourceGraph, NIE('hasPart'),
-                           targetGraph, formData, NIE('hasPart'));
+  mapPredicateToNewSubject(store, sourceGraph, DCT('hasPart'),
+                           targetGraph, formData, DCT('hasPart'));
 
    mapPredicateToNewSubject(store, sourceGraph, SCHEMA('price'),
                          targetGraph, formData, EXT('taxRateAmount'));
-
-  mapPredicateToNewSubject(store, sourceGraph, NIE('hasPart'),
-                           targetGraph, formData, NIE('hasPart'));
 
   mapPredicateToNewSubject(store, sourceGraph, PROV('startedAtTime'),
                            targetGraph, formData, EXT('sessionStartedAtTime'));
