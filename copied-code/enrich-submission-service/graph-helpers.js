@@ -23,7 +23,7 @@ async function writeToString(graph) {
  *
  * @param {string} graph URI of the graph to export
  * @param {string} file Absolute path of the file to export to (e.g. /data/exports/my-graph.ttl)
-*/
+ */
 async function writeToFile(graph, file) {
   const tmpFile = `${file}.tmp`;
 
@@ -31,25 +31,42 @@ async function writeToFile(graph, file) {
   console.log(`Exporting 0/${count} triples from graph <${graph}>`);
 
   if (count > 0) {
-    let offset = 0;
     const query = `
-      SELECT ?s ?p ?o
+      CONSTRUCT { ?s ?p ?o }
       WHERE {
         GRAPH ${sparqlEscapeUri(graph)} {
           ?s ?p ?o .
         }
       }
-      LIMIT ${batchSize} OFFSET %OFFSET
     `;
-
-    while (offset < count) {
-      await appendBatch(tmpFile, query, offset);
-      offset = offset + batchSize;
-      console.log(`Constructed ${offset < count ? offset : count}/${count} triples from graph <${graph}>`);
-    }
-
+    const results = await constructQuery(query);
+    fs.appendFile(tmpFile, results);
     await fs.rename(tmpFile, file);
   }
+}
+
+
+async function constructQuery(query) {
+  const format = 'text/turtle';
+  const options = {
+    method: 'POST',
+    url: process.env.MU_SPARQL_ENDPOINT,
+    headers: {
+      'Accept': format
+    },
+    form: {
+      query: query
+    }
+  };
+
+  return new Promise ( (resolve,reject) => {
+    return request(options, function(error, response, body) {
+      if (error)
+        reject(error);
+      else
+        resolve(body);
+    });
+  });
 }
 
 /**
