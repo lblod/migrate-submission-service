@@ -42,7 +42,7 @@ async function createDataBuckets(inzendingData){
   loadCodelists('/app/codelists', store, codeListsGraph);
   rdflibParse( inzendingData, store, sourceGraph.value, 'text/turtle' );
 
-  let inzendingVoorToezicht = store.match(undefined, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), TOEZICHT('InzendingVoorToezicht'), sourceGraph)[0].subject;
+  let inzendingVoorToezicht = store.match(undefined, RDF('type'), TOEZICHT('InzendingVoorToezicht'), sourceGraph)[0].subject;
 
   const formTtlFile = createFileTtlMetaData(store, fileGraph);
 
@@ -95,7 +95,7 @@ function extractSubmission(inzendingVoorToezicht, store, sourceGraph, codeListsG
   let newUuid = uuid();
   const newSubmission = namedNode(`http://data.lblod.info/submissions/${newUuid}`); //Note: will be reused
   store.add(newSubmission, MU('uuid'), newUuid, submissionGraph);
-  store.add(newSubmission, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), MEB('Submission'), submissionGraph);
+  store.add(newSubmission, RDF('type'), MEB('Submission'), submissionGraph);
 
   mapPredicateToNewSubject(store, sourceGraph, DCT('subject'),
                            submissionGraph, newSubmission, PAV('createdBy'));
@@ -124,7 +124,7 @@ function extractSubmittedDocument(inzendingVoorToezicht, store, sourceGraph, cod
   let newUuid = uuid();
   const newSubDoc = namedNode(`http://data.lblod.info/submission-documents/${newUuid}`); //Note: will be reused
   store.add(newSubDoc, MU('uuid'), newUuid, targetGraph);
-  store.add(newSubDoc, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), EXT('SubmissionDocument'), targetGraph);
+  store.add(newSubDoc, RDF('type'), EXT('SubmissionDocument'), targetGraph);
   store.add(newSubDoc, DCT('source'), formTtlFile, targetGraph);
   //the links need to be there too
   const files = store.match(inzendingVoorToezicht, NIE('hasPart'), undefined, sourceGraph);
@@ -151,7 +151,7 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
 
   //TODO: should be conditoinal
   const newOrg = namedNode(`http://data.lblod.info/organisations/${uuid()}`);
-  store.add(newOrg, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), EXT('Organization'), targetGraph);
+  store.add(newOrg, RDF('type'), EXT('Organization'), targetGraph);
   store.add(newSubDoc, ELI('is_about'), newOrg, targetGraph);
 
   mapPredicateToNewSubject(store, sourceGraph, TOEZICHT('businessIdentifier'),
@@ -169,8 +169,8 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
                            targetGraph, newSubDoc, LBLODBESLUIT('hasAdditionalTaxRate'));
 
   const newZitting = namedNode(`http://data.lblod.info/zittingen/${uuid()}`);
-  store.add(newZitting, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), EXT('PlaceholderZiting'), targetGraph); //To keep track easily these are actually not real Zittingen
-  store.add(newZitting, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), BESLUIT('Zitting'), targetGraph);
+  store.add(newZitting, RDF('type'), EXT('PlaceholderZiting'), targetGraph); //To keep track easily these are actually not real Zittingen
+  store.add(newZitting, RDF('type'), BESLUIT('Zitting'), targetGraph);
 
   let zittingsDatum = (store.match(inzendingVoorToezicht, TOEZICHT('sessionDate'), undefined, sourceGraph)[0] || {}).object;
   if(!zittingsDatum || !zittingsDatum.value) throw `No zittingsdatum found for ${inzendingVoorToezicht.value}`;
@@ -185,15 +185,15 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
   const oldBesluitenlijst = namedNode('http://data.lblod.info/DecisionType/46b254008bbca1354e632dc40cf550c6b313e523799cafd7200a48a19e09249f');
   const oldNotulen = namedNode('http://data.lblod.info/DecisionType/5a71a9e79b58c6b095cb2e575c7a397cc1fe80385e4d1deddd66745a03638f9f');
   if(typeInzending.equals(oldAgenda)){
-     store.add(newSubDoc, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), getNewCodeListEquivalent(store, codeListsGraph, oldAgenda), targetGraph);
+     store.add(newSubDoc, RDF('type'), getNewCodeListEquivalent(store, codeListsGraph, oldAgenda), targetGraph);
     store.add(newZitting, LBLODBESLUIT('besluit:heeftAgenda'), newSubDoc, targetGraph);
   }
   else if(typeInzending.equals(oldBesluitenlijst)){
-    store.add(newSubDoc, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), getNewCodeListEquivalent(store, codeListsGraph, oldBesluitenlijst), targetGraph);
+    store.add(newSubDoc, RDF('type'), getNewCodeListEquivalent(store, codeListsGraph, oldBesluitenlijst), targetGraph);
     store.add(newZitting, LBLODBESLUIT('besluit:heeftBesluitenlijst'), newSubDoc, targetGraph);
   }
   else if(typeInzending.equals(oldNotulen)){
-    store.add(newSubDoc, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), getNewCodeListEquivalent(store, codeListsGraph, oldNotulen), targetGraph);
+    store.add(newSubDoc, RDF('type'), getNewCodeListEquivalent(store, codeListsGraph, oldNotulen), targetGraph);
     store.add(newZitting, LBLODBESLUIT('besluit:heeftNotulen'), newSubDoc, targetGraph);
   }
   else {
@@ -201,15 +201,15 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
     if(!targetObject){
       throw new Error(`No codelist equivalent found for ${typeInzending.value}, inzending: ${inzendingVoorToezicht.value}`);
     }
-    store.add(newSubDoc, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), targetObject, targetGraph);
+    store.add(newSubDoc, RDF('type'), targetObject, targetGraph);
     // a very complex path needs to be generated
     const bap = namedNode(`http://data.lblod.info/behandeling-van-agendapunten/${uuid()}`);
     const ap = namedNode(`http://data.lblod.info/agendapunten/${uuid()}`);
-    store.add(bap, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), BESLUIT('BehandelingVanAgendapunt'), targetGraph);
-    store.add(bap, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), EXT('PlaceholderBehandelingVanAgendapunt'), targetGraph);
+    store.add(bap, RDF('type'), BESLUIT('BehandelingVanAgendapunt'), targetGraph);
+    store.add(bap, RDF('type'), EXT('PlaceholderBehandelingVanAgendapunt'), targetGraph);
     store.add(bap, DCT('subject'), ap, targetGraph);
-    store.add(ap, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), BESLUIT('Agendapunt'), targetGraph);
-    store.add(ap, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), EXT('Agendapunt'), targetGraph);
+    store.add(ap, RDF('type'), BESLUIT('Agendapunt'), targetGraph);
+    store.add(ap, RDF('type'), EXT('Agendapunt'), targetGraph);
     store.add(newZitting, BESLUIT('behandelt'), ap, targetGraph);
     store.add(bap, PROV('generated'), newSubDoc, targetGraph);
   }
@@ -219,7 +219,7 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
 
   const regulationType = store.match(inzendingVoorToezicht, TOEZICHT('regulationType'), undefined, sourceGraph)[0];
   if(regulationType){
-    store.add(newSubDoc, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+    store.add(newSubDoc, RDF('type'),
               getNewCodeListEquivalent(store, codeListsGraph, regulationType.object), targetGraph);
   }
 
@@ -245,7 +245,7 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
   const files = store.match(inzendingVoorToezicht, NIE('hasPart'), undefined, sourceGraph);
   files.forEach(file => {
     store.add(newSubDoc, DCT('hasPart'), file.object, targetGraph);
-    store.add(file.object, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), namedNode('http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#FileDataObject'), targetGraph);
+    store.add(file.object, RDF('type'), namedNode('http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#FileDataObject'), targetGraph);
   });
 
   const fileAddresses = store.match(inzendingVoorToezicht, TOEZICHT('fileAddress'), undefined, sourceGraph);
@@ -254,7 +254,7 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
     const newFileAdd =  namedNode(`http://data.lblod.info/remote-data-objects/${addUuid}`);
     store.add(newSubDoc, DCT('hasPart'), newFileAdd, targetGraph);
     store.add(newFileAdd, MU('uuid'), addUuid, targetGraph);
-    store.add(newFileAdd, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), namedNode('http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#RemoteDataObject'), targetGraph);
+    store.add(newFileAdd, RDF('type'), namedNode('http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#RemoteDataObject'), targetGraph);
 
     const address = store.match(url.object, EXT('fileAddress'), undefined, sourceGraph);
     if(address.length){
@@ -276,7 +276,7 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
   const simpleTaxRates = store.match(inzendingVoorToezicht, TOEZICHT('simplifiedTaxRate'), undefined, sourceGraph);
   if(simpleTaxRates.length){
     const newTaxRate = namedNode(`http://data.lblod.info/tax-rates/${uuid()}`);
-    store.add(newTaxRate, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), LBLODBESLUIT('TaxRate'), targetGraph);
+    store.add(newTaxRate, RDF('type'), LBLODBESLUIT('TaxRate'), targetGraph);
     store.add(newSubDoc, LBLODBESLUIT('taxRate'), newTaxRate, targetGraph);
 
 
@@ -295,7 +295,7 @@ function extractFormData(inzendingVoorToezicht, store, sourceGraph, codeListsGra
   let newUuid = uuid();
   const formData = namedNode(`http://data.lblod.info/form-datas/${newUuid}`); //Note: will be reused
   store.add(formData, MU('uuid'), newUuid, targetGraph);
-  store.add(formData, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), MELDING('FormData'), targetGraph);
+  store.add(formData, RDF('type'), MELDING('FormData'), targetGraph);
   store.add(formData, PROV('hadPrimary'), formTtlFile, targetGraph);
   store.add(submission, PROV('generated'), formData, targetGraph);
 
