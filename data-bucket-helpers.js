@@ -260,6 +260,7 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
     const address = store.match(url.object, EXT('fileAddress'), undefined, sourceGraph);
     if(address.length){
       store.add(newFileAdd, namedNode('http://www.semanticdesktop.org/ontologies/2007/01/19/nie#url'), address[0].object, dbGraph);
+      store.add(newFileAdd, namedNode('http://www.semanticdesktop.org/ontologies/2007/01/19/nie#url'), address[0].object, targetGraph);
 
       const cacheStatus = store.match(url.object, EXT('fileAddressCacheStatus'), undefined, sourceGraph)[0].object;
       const status = store.match(cacheStatus, EXT('fileAddressCacheStatusLabel'), undefined, sourceGraph)[0].object;
