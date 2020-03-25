@@ -172,8 +172,11 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
   store.add(newZitting, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), EXT('PlaceholderZiting'), targetGraph); //To keep track easily these are actually not real Zittingen
   store.add(newZitting, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), BESLUIT('Zitting'), targetGraph);
 
-  mapPredicateToNewSubject(store, sourceGraph, TOEZICHT('sessionDate'),
-                           targetGraph, newZitting, PROV('startedAtTime'));
+  let zittingsDatum = (store.match(inzendingVoorToezicht, TOEZICHT('sessionDate'), undefined, sourceGraph)[0] || {}).object;
+  if(!zittingsDatum || !zittingsDatum.value) throw `No zittingsdatum found for ${inzendingVoorToezicht.value}`;
+  const updatedDate = new Date(zittingsDatum.value);
+  updatedDate.setHours( 19 ); //This is a best guess  as discussed by Erika. It used to be date, now it is datetime
+  store.add(newZitting, PROV('startedAtTime'), updatedDate, targetGraph);
 
   //Linking zitting to the submissionDocument is depending on the type of document is submitted.
   const typeInzending = store.match(inzendingVoorToezicht, TOEZICHT('decisionType'), undefined, sourceGraph)[0].object;
