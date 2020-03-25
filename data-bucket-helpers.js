@@ -49,7 +49,7 @@ async function createDataBuckets(inzendingData){
   const submission = extractSubmission(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, dbGraph);
 
   const subissionDocument = extractSubmittedDocument(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, dbGraph, submission, formTtlFile);
-  await extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, formTtlGraph, subissionDocument);
+  await extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, formTtlGraph, subissionDocument, dbGraph);
   const formData = extractFormData(inzendingVoorToezicht, store, formTtlGraph, codeListsGraph, dbGraph, submission, subissionDocument, formTtlFile);
   const nTriplesDbGraph = serialize(dbGraph, store, undefined, 'application/n-triples'); //application/n-triples
   const nTriplesFileGraph = serialize(fileGraph, store, undefined, 'application/n-triples'); //application/n-triples
@@ -136,7 +136,7 @@ function extractSubmittedDocument(inzendingVoorToezicht, store, sourceGraph, cod
   return newSubDoc;
 }
 
-async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, targetGraph, newSubDoc){
+async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, targetGraph, newSubDoc, dbGraph){
   mapPredicateToNewSubject(store, sourceGraph, DCT('description'),
                            targetGraph, newSubDoc, DCT('description'));
 
@@ -253,21 +253,22 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
     const addUuid = uuid();
     const newFileAdd =  namedNode(`http://data.lblod.info/remote-data-objects/${addUuid}`);
     store.add(newSubDoc, DCT('hasPart'), newFileAdd, targetGraph);
-    store.add(newFileAdd, MU('uuid'), addUuid, targetGraph);
     store.add(newFileAdd, RDF('type'), namedNode('http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#RemoteDataObject'), targetGraph);
-
+    //Database and localstore keeps track of the url
+    store.add(newFileAdd, MU('uuid'), addUuid, dbGraph);
+    store.add(newFileAdd, RDF('type'), namedNode('http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#RemoteDataObject'), dbGraph);
     const address = store.match(url.object, EXT('fileAddress'), undefined, sourceGraph);
     if(address.length){
-      store.add(newFileAdd, namedNode('http://www.semanticdesktop.org/ontologies/2007/01/19/nie#url'), address[0].object, targetGraph);
+      store.add(newFileAdd, namedNode('http://www.semanticdesktop.org/ontologies/2007/01/19/nie#url'), address[0].object, dbGraph);
 
       const cacheStatus = store.match(url.object, EXT('fileAddressCacheStatus'), undefined, sourceGraph)[0].object;
       const status = store.match(cacheStatus, EXT('fileAddressCacheStatusLabel'), undefined, sourceGraph)[0].object;
 
       if(status.value == "dead" || status.value == "failed"){
-        store.add(newFileAdd, ADMS('status'), namedNode('http://lblod.data.gift/file-download-statuses/failure'), targetGraph);
+        store.add(newFileAdd, ADMS('status'), namedNode('http://lblod.data.gift/file-download-statuses/failure'), dbGraph);
       }
       else{
-        store.add(newFileAdd, ADMS('status'), namedNode('http://lblod.data.gift/file-download-statuses/success'), targetGraph);
+        store.add(newFileAdd, ADMS('status'), namedNode('http://lblod.data.gift/file-download-statuses/success'), dbGraph);
       }
     }
   });
