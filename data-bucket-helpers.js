@@ -2,6 +2,7 @@ import { NamedNode, graph as rdflibGraph, parse as rdflibParse, namedNode, seria
 import { uuid } from 'mu';
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { getBestuursorganenInTijd } from './queries';
 
 import { RDF,
          FORM,
@@ -31,7 +32,7 @@ import { RDF,
          DBPEDIA
        } from './namespaces';
 
-function createDataBuckets(inzendingData){
+async function createDataBuckets(inzendingData){
   const store = rdflibGraph();
   const sourceGraph = namedNode('http://source');
   const formTtlGraph = namedNode('http://target');
@@ -48,7 +49,7 @@ function createDataBuckets(inzendingData){
   const submission = extractSubmission(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, dbGraph);
 
   const subissionDocument = extractSubmittedDocument(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, dbGraph, submission, formTtlFile);
-  extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, formTtlGraph, subissionDocument);
+  await extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, formTtlGraph, subissionDocument);
   const formData = extractFormData(inzendingVoorToezicht, store, formTtlGraph, codeListsGraph, dbGraph, submission, subissionDocument, formTtlFile);
   const nTriplesDbGraph = serialize(dbGraph, store, undefined, 'application/n-triples'); //application/n-triples
   const nTriplesFileGraph = serialize(fileGraph, store, undefined, 'application/n-triples'); //application/n-triples
@@ -96,7 +97,6 @@ function extractSubmission(inzendingVoorToezicht, store, sourceGraph, codeListsG
   store.add(newSubmission, MU('uuid'), newUuid, submissionGraph);
   store.add(newSubmission, namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), MEB('Submission'), submissionGraph);
 
-  //TODO: in the old data this is not bestuursorgaan in tijd....
   mapPredicateToNewSubject(store, sourceGraph, DCT('subject'),
                            submissionGraph, newSubmission, PAV('createdBy'));
 
@@ -136,7 +136,7 @@ function extractSubmittedDocument(inzendingVoorToezicht, store, sourceGraph, cod
   return newSubDoc;
 }
 
-function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, targetGraph, newSubDoc){
+async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, targetGraph, newSubDoc){
   mapPredicateToNewSubject(store, sourceGraph, DCT('description'),
                            targetGraph, newSubDoc, DCT('description'));
 
@@ -220,8 +220,9 @@ function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeLists
               getNewCodeListEquivalent(store, codeListsGraph, regulationType.object), targetGraph);
   }
 
-  mapPredicateToNewSubject(store, sourceGraph, TOEZICHT('decidedBy'),
-                           targetGraph, newSubDoc, ELI('passed_by'));
+
+  const bestuursOrgaanInTijd = await deduceBestuursorgaanInTijd(store, sourceGraph, inzendingVoorToezicht);
+  store.add(newSubDoc, ELI('passed_by'), namedNode(bestuursOrgaanInTijd.botUri), targetGraph);
 
   const oldAuthenticity = store.match(inzendingVoorToezicht, TOEZICHT('authenticityType'), undefined, sourceGraph);
   if(oldAuthenticity.length){
@@ -378,9 +379,32 @@ function mapPredicateToNewSubject(store, graph, oldPredicate, targetGraph,
   updatedTriples.forEach(t => store.add(t));
 }
 
-function updateTriples(store, oldTriples, newTriples){
-  oldTriples.forEach(t => store.remove(t));
-  newTriples.forEach(t => store.add(t));
+async function deduceBestuursorgaanInTijd(store, graph, inzending){
+  const bestuursorgaan = (store.match(inzending, TOEZICHT('decidedBy'), undefined, graph)[0] || {}).object;
+  if(!bestuursorgaan) throw `No bestuurgaan found for ${inzending.value}`;
+
+  let zittingsDatum = (store.match(inzending, TOEZICHT('sessionDate'), undefined, graph)[0] || {}).object;
+  if(!zittingsDatum || !zittingsDatum.value) throw `No zittingsDatum found for ${inzending.value}`;
+  zittingsDatum = new Date(zittingsDatum.value);
+
+  const bots = await getBestuursorganenInTijd(bestuursorgaan.value);
+  const bot = bots.find(b => {
+    const start = new Date(b.start);
+    const end = b.end ? new Date(b.end) : null;
+    if(zittingsDatum < start){
+      return false;
+    }
+    if(zittingsDatum >= start && !end){
+      return true;
+    }
+    if(zittingsDatum >= start && zittingsDatum <= end){
+      return true;
+    }
+    return false;
+  });
+  if(!bot) throw `No bestuurgaan in tijd found for ${inzending.value}`;
+  return bot;
 }
+
 
 export { createDataBuckets }

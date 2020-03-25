@@ -369,6 +369,17 @@ async function linkSubmissionDocumentWithTtl(fileGraph, file, submissionDocument
   `);
 }
 
+async function getBestuursorganenInTijd(bestuursorgaanUri){
+  const q = `
+    SELECT DISTINCT ?botUri ?start ?end{
+      ?botUri <http://data.vlaanderen.be/ns/mandaat#isTijdspecialisatieVan> ${sparqlEscapeUri(bestuursorgaanUri)}.
+      ?botUri <http://data.vlaanderen.be/ns/mandaat#bindingStart> ?start.
+      OPTIONAL { ?botUri <http://data.vlaanderen.be/ns/mandaat#bindingEinde> ?end. }
+    }
+  `;
+  return parseResult(await query(q));
+}
+
 /**
  * convert results of select query to an array of objects.
  * courtesy: Niels Vandekeybus
@@ -379,7 +390,7 @@ function parseResult( result ) {
   const bindingKeys = result.head.vars;
   return result.results.bindings.map((row) => {
     const obj = {};
-    bindingKeys.forEach((key) => obj[key] = row[key].value);
+    bindingKeys.forEach((key) => obj[key] = row[key] && row[key].value);
     return obj;
   });
 };
@@ -418,5 +429,6 @@ export { getInzendingVoorToezichtToDo,
          insertData,
          ONGOING,
          FINISHED,
-         FAILED
+         FAILED,
+         getBestuursorganenInTijd
        }

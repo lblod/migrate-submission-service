@@ -10,6 +10,7 @@ import  { getInzendingVoorToezichtToDo,
 
 import { createDataBuckets } from './data-bucket-helpers';
 import { insertTtlFile } from './file-helpers';
+import { calculateMetaSnapshot } from './copied-code/enrich-submission-service/submission-document';
 
 app.get('/', (req, res) => {
   res.send('Hello from migrate-submission-service');
@@ -28,9 +29,10 @@ app.get('/start-migration', async (req, res) => {
   for(let inzending of inzendingen){
     const task = await createTaskForMigration(inzending.inzendingUri);
     const inzendingTTl = await constructInzendingContentTtl(inzending.inzendingUri);
-    const data = createDataBuckets(inzendingTTl);
+    const data = await createDataBuckets(inzendingTTl);
     await insertTtlFile(data.fileGraph.value, data.formTtlFile.value, data.turtleFormTtlContent, data.nTriplesFileGraph);
     await insertData(inzending.graph, data.nTriplesDbGraph);
+    await calculateMetaSnapshot(data.subissionDocument.value);
     await updateTask(task.taskUri, 1, FINISHED);
     ++count;
     console.log(count);
