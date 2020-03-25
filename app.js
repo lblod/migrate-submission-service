@@ -28,12 +28,12 @@ app.get('/start-migration', async (req, res) => {
   let count = 0;
   for(let inzending of inzendingen){
     try {
-    const task = await createTaskForMigration(inzending.inzendingUri);
-    const inzendingTTl = await constructInzendingContentTtl(inzending.inzendingUri);
-    const data = await createDataBuckets(inzendingTTl);
-    await insertTtlFile(data.fileGraph.value, data.formTtlFile.value, data.turtleFormTtlContent, data.nTriplesFileGraph);
-    await insertData(inzending.graph, data.nTriplesDbGraph);
-    await calculateMetaSnapshot(data.subissionDocument.value);
+      const task = await createTaskForMigration(inzending.inzendingUri);
+      const inzendingTTl = await constructInzendingContentTtl(inzending.inzendingUri);
+      const data = await createDataBuckets(inzendingTTl);
+      await insertTtlFile(data.fileGraph.value, data.formTtlFile.value, data.turtleFormTtlContent, data.nTriplesFileGraph);
+      await insertData(inzending.graph, data.nTriplesDbGraph);
+      await calculateMetaSnapshot(data.subissionDocument.value);
       await updateTask(task.taskUri, 1, FINISHED);
     }
     catch(e){
