@@ -25,6 +25,7 @@ async function writeToString(graph) {
  * @param {string} file Absolute path of the file to export to (e.g. /data/exports/my-graph.ttl)
  */
 async function writeToFile(graph, file) {
+  //TODO: check with Erika if we need to change this in the original code, because issues encoding
   const tmpFile = `${file}.tmp`;
 
   const count = await countTriples(graph);

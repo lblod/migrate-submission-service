@@ -27,7 +27,7 @@ export default async function enrich(submissionDocument) {
 
   const enrichments = await writeToString(tmpGraph);
   try {
-    clearGraph(tmpGraph); // don't await the cleanup
+    await clearGraph(tmpGraph); // don't await the cleanup //TODO: check with erika since deadlocks may occur
   } catch (e) {
     console.log(`Deletion of tmp graph <${tmpGraph}> failed:\n ${e}`);
   }
