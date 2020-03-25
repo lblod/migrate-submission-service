@@ -37,11 +37,13 @@ async function getInzendingVoorToezichtToDo(formNodeUri, bestuurseenheid, inzend
   const q = `
     PREFIX toezicht: <http://mu.semte.ch/vocabularies/ext/supervision/>
     PREFIX nuao: <http://www.semanticdesktop.org/ontologies/2010/01/25/nuao#>
+    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 
-    SELECT ?graph ?inzendingUri WHERE {
+    SELECT ?graph ?inzendingUri ?eenheidLabel WHERE {
       GRAPH ?graph {
         ${inzendingFilter}
         ?inzendingUri a toezicht:InzendingVoorToezicht.
+        ?inzendingUri <http://purl.org/dc/terms/subject> ?eenheid.
         ?form <http://mu.semte.ch/vocabularies/ext/hasInzendingVoorToezicht> ?inzendingUri.
         ?form <http://mu.semte.ch/vocabularies/ext/hasForm> ${sparqlEscapeUri(formNodeUri)}.
         ${extraFilter}
@@ -50,6 +52,8 @@ async function getInzendingVoorToezichtToDo(formNodeUri, bestuurseenheid, inzend
            ?task nuao:involves ?inzendingUri.
         }
       }
+
+      ?eenheid skos:prefLabel ?eenheidLabel.
 
       GRAPH <http://lblod.data.gift/resources/migrate-submission-service/graph/migration-graph> {
          FILTER NOT EXISTS {
