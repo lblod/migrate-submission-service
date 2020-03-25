@@ -13,13 +13,25 @@ const FINISHED = 'http://lblod.data.gift/concepts/migrate-submission-service/sta
 const FAILED = 'http://lblod.data.gift/concepts/migrate-submission-service/status/failed';
 const DEFAULT_GRAPH = 'http://lblod.data.gift/resources/migrate-submission-service/graph/migration-graph';
 
-async function getInzendingVoorToezichtToDo(formNodeUri, bestuurseenheid){
-  //TODO: filter on specific formNode
-
+async function getInzendingVoorToezichtToDo(formNodeUri, bestuurseenheid, inzendingUri, besluitType, limit){
   let extraFilter = '';
-
   if(bestuurseenheid){
     extraFilter = `?inzendingUri <http://purl.org/dc/terms/subject> ${sparqlEscapeUri(bestuurseenheid)}.`;
+  }
+
+  let inzendingFilter = '';
+  if(inzendingUri){
+    inzendingFilter = `BIND(${sparqlEscapeUri(inzendingUri)} as ?inzendingUri)`;
+  }
+
+  let limitFilter = '';
+  if(limit){
+    limitFilter = `LIMIT ${limit}`;
+  }
+
+  let besluitTypeFilter = '';
+  if(besluitType){
+    besluitTypeFilter = `?inzendingUri <http://mu.semte.ch/vocabularies/ext/supervision/decisionType> ${sparqlEscapeUri(besluitType)}`;
   }
 
   const q = `
@@ -28,10 +40,12 @@ async function getInzendingVoorToezichtToDo(formNodeUri, bestuurseenheid){
 
     SELECT ?graph ?inzendingUri WHERE {
       GRAPH ?graph {
+        ${inzendingFilter}
         ?inzendingUri a toezicht:InzendingVoorToezicht.
         ?form <http://mu.semte.ch/vocabularies/ext/hasInzendingVoorToezicht> ?inzendingUri.
         ?form <http://mu.semte.ch/vocabularies/ext/hasForm> ${sparqlEscapeUri(formNodeUri)}.
         ${extraFilter}
+        ${besluitTypeFilter}
         FILTER NOT EXISTS {
            ?task nuao:involves ?inzendingUri.
         }
@@ -43,6 +57,7 @@ async function getInzendingVoorToezichtToDo(formNodeUri, bestuurseenheid){
          }
        }
     }
+    ${limitFilter}
   `;
   const results = parseResult(await query(q));
   return results;
