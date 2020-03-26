@@ -297,7 +297,6 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
   }
 }
 
-
 function extractFormData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, targetGraph, submission, subissionDocument, formTtlFile){
   //this extracts the flattened resrouce
   let newUuid = uuid();
