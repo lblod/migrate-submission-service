@@ -71,7 +71,8 @@
 
 <https://data.vlaanderen.be/id/concept/BesluitType/f8c070bd-96e4-43a1-8c6e-532bcd771251> <http://www.w3.org/2004/02/skos/core#exactMatch> <http://data.lblod.info/DecisionType/9ce1fbfa68b14a5599b266f0e0211bf34b6be9d3792e4ee4a893de6525bd1331> .
 
-<https://data.vlaanderen.be/id/concept/BesluitType/d9c3d177-6dc6-4775-8c6a-1055a9cbdcc6> <http://www.w3.org/2004/02/skos/core#exactMatch> <http://data.lblod.info/DecisionType/1e6d99d58c6db519d593f8354f218eea4936199388ac0dcb93da6ad7f252b253> .
+# wijziging statuten ocmw-vereniging
+<https://data.vlaanderen.be/id/concept/BesluitType/d9c3d177-6dc6-4775-8c6a-1055a9cbdcc6> <http://www.w3.org/2004/02/skos/core#exactMatch> <http://data.lblod.info/DecisionType/36979ac1d57b103ec10732be09705e0183863c3db9726b6352344500e392f33c> .
 
 <https://data.vlaanderen.be/id/concept/BesluitType/9f12dc58-18ba-4a1f-9e7a-cf73d0b4f025> <http://www.w3.org/2004/02/skos/core#exactMatch> <http://data.lblod.info/DecisionType/f1befb94c7f074a34d1e2b594141e6e53ce63b7c65a349885d1026779df581ed> .
 
@@ -88,3 +89,6 @@
 <https://data.vlaanderen.be/id/concept/BesluitType/efa4ec5a-b006-453f-985f-f986ebae11bc> <http://www.w3.org/2004/02/skos/core#exactMatch> <http://data.lblod.info/RegulationType/ef35b053c004a25069c58090d967ade753dd02586b0f76b916a0ca82b7294d0b> .
 
 <https://data.vlaanderen.be/id/concept/BesluitType/bf72e38a-2c73-4484-b82f-c642a4c39d0c> <http://www.w3.org/2004/02/skos/core#exactMatch> <http://data.lblod.info/DecisionType/15150f3d5ec59c5f202fd2d8bb289de12b15adf98c660c535468fac0c7ff5ba2> .
+
+# "Besluit over budget(wijziging) OCMW-vereniging."
+ <https://data.vlaanderen.be/id/concept/BesluitType/70ae4d36-de0c-425d-9dbe-3b6deef8343c> <http://www.w3.org/2004/02/skos/core#exactMatch> <http://data.lblod.info/DecisionType/1e6d99d58c6db519d593f8354f218eea4936199388ac0dcb93da6ad7f252b253> .
