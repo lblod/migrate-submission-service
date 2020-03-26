@@ -176,10 +176,11 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
   store.add(newZitting, RDF('type'), BESLUIT('Zitting'), targetGraph);
 
   let zittingsDatum = (store.match(inzendingVoorToezicht, TOEZICHT('sessionDate'), undefined, sourceGraph)[0] || {}).object;
-  if(!zittingsDatum || !zittingsDatum.value) throw `No zittingsdatum found for ${inzendingVoorToezicht.value}`;
-  const updatedDate = new Date(zittingsDatum.value);
-  updatedDate.setHours( 19 ); //This is a best guess  as discussed by Erika. It used to be date, now it is datetime
-  store.add(newZitting, PROV('startedAtTime'), updatedDate, targetGraph);
+  if(zittingsDatum && zittingsDatum.value){
+    const updatedDate = new Date(zittingsDatum.value);
+    updatedDate.setHours( 19 ); //This is a best guess  as discussed by Erika. It used to be date, now it is datetime
+    store.add(newZitting, PROV('startedAtTime'), updatedDate, targetGraph);
+  }
 
   //Linking zitting to the submissionDocument is depending on the type of document is submitted.
   const typeInzending = store.match(inzendingVoorToezicht, TOEZICHT('decisionType'), undefined, sourceGraph)[0].object;
@@ -189,15 +190,15 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
   const oldNotulen = namedNode('http://data.lblod.info/DecisionType/5a71a9e79b58c6b095cb2e575c7a397cc1fe80385e4d1deddd66745a03638f9f');
   if(typeInzending.equals(oldAgenda)){
      store.add(newSubDoc, RDF('type'), getNewCodeListEquivalent(store, codeListsGraph, oldAgenda), targetGraph);
-    store.add(newZitting, LBLODBESLUIT('besluit:heeftAgenda'), newSubDoc, targetGraph);
+    store.add(newZitting, BESLUIT('heeftAgenda'), newSubDoc, targetGraph);
   }
   else if(typeInzending.equals(oldBesluitenlijst)){
     store.add(newSubDoc, RDF('type'), getNewCodeListEquivalent(store, codeListsGraph, oldBesluitenlijst), targetGraph);
-    store.add(newZitting, LBLODBESLUIT('besluit:heeftBesluitenlijst'), newSubDoc, targetGraph);
+    store.add(newZitting, BESLUIT('heeftBesluitenlijst'), newSubDoc, targetGraph);
   }
   else if(typeInzending.equals(oldNotulen)){
     store.add(newSubDoc, RDF('type'), getNewCodeListEquivalent(store, codeListsGraph, oldNotulen), targetGraph);
-    store.add(newZitting, LBLODBESLUIT('besluit:heeftNotulen'), newSubDoc, targetGraph);
+    store.add(newZitting, BESLUIT('heeftNotulen'), newSubDoc, targetGraph);
   }
   else {
     const targetObject = getNewCodeListEquivalent(store, codeListsGraph, typeInzending);
@@ -228,7 +229,9 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
 
 
   const bestuursOrgaanInTijd = await deduceBestuursorgaanInTijd(store, sourceGraph, inzendingVoorToezicht);
-  store.add(newSubDoc, ELI('passed_by'), namedNode(bestuursOrgaanInTijd.botUri), targetGraph);
+  if(bestuursOrgaanInTijd){
+    store.add(newSubDoc, ELI('passed_by'), namedNode(bestuursOrgaanInTijd.botUri), targetGraph);
+  }
 
   const oldAuthenticity = store.match(inzendingVoorToezicht, TOEZICHT('authenticityType'), undefined, sourceGraph);
   if(oldAuthenticity.length){
@@ -389,10 +392,10 @@ function mapPredicateToNewSubject(store, graph, oldPredicate, targetGraph,
 
 async function deduceBestuursorgaanInTijd(store, graph, inzending){
   const bestuursorgaan = (store.match(inzending, TOEZICHT('decidedBy'), undefined, graph)[0] || {}).object;
-  if(!bestuursorgaan) throw `No bestuurgaan found for ${inzending.value}`;
+  if(!bestuursorgaan) return null;
 
   let zittingsDatum = (store.match(inzending, TOEZICHT('sessionDate'), undefined, graph)[0] || {}).object;
-  if(!zittingsDatum || !zittingsDatum.value) throw `No zittingsDatum found for ${inzending.value}`;
+  if(!zittingsDatum || !zittingsDatum.value) return null;
   zittingsDatum = new Date(zittingsDatum.value);
 
   const bots = await getBestuursorganenInTijd(bestuursorgaan.value);
