@@ -40,6 +40,12 @@ app.post('/start-migration-all', async (req, res) => {
 
 app.post('/start-migration-with-filter', async (req, res) => {
   const { formNodeUri, bestuurseenheid, inzendingUri, besluitType, limit } = req.body;
+
+  if(!formNodeUri){
+    res.status(400).send({msg: `Please specify at least formNodeUri` });
+    return;
+  }
+
   const inzendingen = await getInzendingVoorToezichtToDo(formNodeUri, bestuurseenheid, inzendingUri, besluitType, limit);
   migrateFormsForFormNode(inzendingen);
   res.send({msg: `job started for ${inzendingen.length} inzendingen` });
