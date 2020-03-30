@@ -1,4 +1,4 @@
-import { NamedNode, graph as rdflibGraph, parse as rdflibParse, namedNode, serialize } from 'rdflib';
+import { NamedNode, graph as rdflibGraph, parse as rdflibParse, namedNode, serialize, literal } from 'rdflib';
 import { uuid } from 'mu';
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
@@ -178,8 +178,9 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
   let zittingsDatum = (store.match(inzendingVoorToezicht, TOEZICHT('sessionDate'), undefined, sourceGraph)[0] || {}).object;
   if(zittingsDatum && zittingsDatum.value){
     const updatedDate = new Date(zittingsDatum.value);
-    updatedDate.setHours( 19 ); //This is a best guess  as discussed by Erika. It used to be date, now it is datetime
-    store.add(newZitting, PROV('startedAtTime'), updatedDate, targetGraph);
+    updatedDate.setHours( 18 ); //This is a best guess  as discussed by Erika. It used to be date, now it is datetime.
+    const newValue = literal(updatedDate.toISOString(), XSD('dateTime'));
+    store.add(newZitting, PROV('startedAtTime'), newValue , targetGraph);
   }
 
   //Linking zitting to the submissionDocument is depending on the type of document is submitted.
