@@ -43,6 +43,7 @@ async function getInzendingVoorToezichtToDo(formNodeUri, bestuurseenheid, inzend
       GRAPH ?graph {
         ${inzendingFilter}
         ?inzendingUri a toezicht:InzendingVoorToezicht.
+        ?inzendingUri <http://www.w3.org/ns/adms#status>  <http://data.lblod.info/document-statuses/verstuurd>.
         ?inzendingUri <http://purl.org/dc/terms/subject> ?eenheid.
         ?form <http://mu.semte.ch/vocabularies/ext/hasInzendingVoorToezicht> ?inzendingUri.
         ?form <http://mu.semte.ch/vocabularies/ext/hasForm> ${sparqlEscapeUri(formNodeUri)}.

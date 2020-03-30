@@ -6,7 +6,7 @@ import  { getInzendingVoorToezichtToDo } from './queries';
  * There are three forms currently
  *   FORMNODE                                                                                            COUNT
  *   http://data.lblod.info/form-nodes/0ecb1654df3d058cf6a636237179e038a8dd65f4edaa3efdfd4d3b7f8311d354	7927
- *   http://data.lblod.info/form-nodes/3aa9e6897f9048d67af54837127db5bafb58aaa689bab1842510f0b17e6b1c05	31283
+ *   http://data.lblod.info/form-nodes/3aa9e6897f9048d67af54837127db5bafb58aaa689bab1842510f0b17e6b1c05	31283 -> 2019
  *   http://data.lblod.info/form-nodes/77fa3d4b1310b08f49ca334ac13153a5953a9feba2c6bfb7c555dc9d45a1d1d7	18013 -> this is the latest
  */
 
