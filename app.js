@@ -64,7 +64,7 @@ app.use(errorHandler);
 async function migrateInzendingen(inzendingen){
   const start = new Date();
   let count = 0;
-  let errorCount = 0;
+  let errors = [];
   const total = inzendingen.length;
   for(let inzending of inzendingen){
     let task = null;
@@ -87,13 +87,15 @@ async function migrateInzendingen(inzendingen){
       await updateTask(task.taskUri, 1, FINISHED);
     }
     catch(e){
-      console.log(`Error for ${inzending.inzendingUri}`);
-      console.error(e);
-      ++errorCount;
+      const errorMessage = `Error for ${inzending.inzendingUri}: error ${e}`;
+      console.log(errorMessage);
+      errors.push(errorMessage);
       await updateTask(task.taskUri, 1, FAILED);
     }
     ++count;
     console.log(`---------------- Processed ${count} of ${total} ----------------`);
+    console.log(`----------------- Number of Errors ${errors.length} -----------------`);
+    errors.forEach(err => console.log(err));
   }
 
   const end = new Date();
