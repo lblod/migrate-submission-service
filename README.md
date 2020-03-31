@@ -1,5 +1,6 @@
 # migrate-submission-service
 Service responsible for migrating `toezicht:InzendingVoorToezicht` to `meb:Submssion` and its relations.
+This service is technically meant to run only once.
 
 # API
 All post calls
@@ -31,3 +32,16 @@ Runs the migration for specific query paramters.
 POST /start-migration-debug
 ```
 This is your playground where you can mess with code. There are som debug-helpers where you might want to play with.
+
+# In docker-compose
+```
+  migrate-submission:
+    image: lblod/migrate-submission-service
+    links:
+      - virtuoso:database
+    volumes:
+      - ./data/files/submissions:/share/submissions
+```
+
+# Caveats
+It is not thread safe, meaning it might do unexpected things when starting multiple jobs at the same time.
