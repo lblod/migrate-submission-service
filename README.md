@@ -26,7 +26,7 @@ Body
  "limit": 1
 }
 ```
-Runs the migration for specific query parameters.\
+Runs the migration for specific query parameters.
 - `formNodeUri`: is required.
 - `taskStatus`: if unspecified, it will fetch all inzendingen with no task associated to it. Else possible values are
 ```
@@ -51,4 +51,5 @@ This is your playground where you can mess with code. There are som debug-helper
 ```
 
 # Caveats
-It is not thread safe, meaning it might do unexpected things when starting multiple jobs at the same time.
+- It is not thread safe, meaning it might do unexpected things when starting multiple jobs at the same time.
+- This assumes the production setup of virtuso for loket. Expects virtuoso to be able to return approx 60000 triples.
