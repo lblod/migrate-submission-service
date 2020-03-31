@@ -35,7 +35,7 @@ app.post('/start-migration-all', async (req, res) => {
     inzendingen = [...inzendingen, ...(await getInzendingVoorToezicht(formNodeUri))];
   }
 
-  migrateFormsForFormNode(inzendingen);
+  migrateInzendingen(inzendingen);
   res.send({msg: `job started for ${inzendingen.length} inzendingen` });
 });
 
@@ -48,20 +48,20 @@ app.post('/start-migration-with-filter', async (req, res) => {
   }
 
   const inzendingen = await getInzendingVoorToezicht(formNodeUri, bestuurseenheid, inzendingUri, besluitType, taskStatus, limit);
-  migrateFormsForFormNode(inzendingen);
+  migrateInzendingen(inzendingen);
   res.send({msg: `job started for ${inzendingen.length} inzendingen` });
 });
 
 app.get('/start-migration-debug', async (req, res) => {
   console.log(`Here you can use debug-helpers and modify code to test stuff`);
   const inzendingen = await getOneInzendingPerType(); //you can also use other premade functions
-  migrateFormsForFormNode(inzendingen);
+  migrateInzendingen(inzendingen);
   res.send({msg: 'debug job started' });
 });
 
 app.use(errorHandler);
 
-async function migrateFormsForFormNode(inzendingen){
+async function migrateInzendingen(inzendingen){
   const start = new Date();
   let count = 0;
   let errorCount = 0;
