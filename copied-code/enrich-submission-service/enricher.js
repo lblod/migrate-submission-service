@@ -1,6 +1,8 @@
 import { sparqlEscapeUri, uuid } from 'mu';
-import { writeToString, clearGraph } from './graph-helpers';
+import { writeToFile } from './graph-helpers';
 import { querySudo as query, updateSudo as update } from '@lblod/mu-auth-sudo';
+import { NamedNode, graph as rdflibGraph, parse as rdflibParse, namedNode, serialize, literal } from 'rdflib';
+import request from 'request';
 
 const BESTUURSORGAAN_SELECT_CONCEPT_SCHEME = 'http://data.lblod.info/concept-schemes/481c03f0-d07f-424e-9c2b-8d4cfb141c72';
 const TOEZICHT_CONCEPT_SCHEMES = [
@@ -17,39 +19,42 @@ const TOEZICHT_CONCEPT_SCHEMES = [
 */
 export default async function enrich(submissionDocument) {
   const tmpGraph = `http://lblod.data.gift/services/enrich-submission-service/${uuid()}`;
-
+  const store = rdflibGraph();
   for (let conceptScheme of TOEZICHT_CONCEPT_SCHEMES) {
-    await addConceptScheme(conceptScheme, tmpGraph);
+    const triples = await constructConceptScheme(conceptScheme);
+    if(triples){
+      rdflibParse( triples, store, tmpGraph, 'text/turtle' );
+    }
   }
 
-  await expandDocumentType(submissionDocument, tmpGraph);
-  await addBestuursorganenForBestuurseenheid(submissionDocument, tmpGraph);
-
-  const enrichments = await writeToString(tmpGraph);
-  try {
-    await clearGraph(tmpGraph); // don't await the cleanup //TODO: check with erika since deadlocks may occur
-  } catch (e) {
-    console.log(`Deletion of tmp graph <${tmpGraph}> failed:\n ${e}`);
+  const expandedTriples = await expandDocumentType(submissionDocument);
+  if(expandedTriples){
+    rdflibParse( expandedTriples, store, tmpGraph, 'text/turtle' );
+  }
+  const bestuursorganenTriples = await addBestuursorganenForBestuurseenheid(submissionDocument);
+  if(bestuursorganenTriples){
+    rdflibParse( bestuursorganenTriples, store, tmpGraph, 'text/turtle' );
   }
 
+  const enrichments = serialize(namedNode(tmpGraph), store, undefined, 'application/n-triples');
   return enrichments;
 }
 
-async function addConceptScheme(conceptScheme, tmpGraph) {
+async function constructConceptScheme(conceptScheme) {
   console.log(`Add concept scheme ${conceptScheme} to meta graph`);
-  await update(`
+  const q = `
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-    INSERT {
-      GRAPH ${sparqlEscapeUri(tmpGraph)} {
+    CONSTRUCT {
         ?concept ?p ?o .
-      }
     } WHERE {
       GRAPH ?g {
         ?concept skos:inScheme ${sparqlEscapeUri(conceptScheme)} ;
           ?p ?o .
       }
     }
-  `);
+  `;
+
+  return await constructQuery(q);
 }
 
 /**
@@ -57,7 +62,7 @@ async function addConceptScheme(conceptScheme, tmpGraph) {
  *
  * E.g. a 'Belastingsreglement' is also a 'Reglement and verordening'
 */
-async function expandDocumentType(submissionDocument, tmpGraph) {
+async function expandDocumentType(submissionDocument) {
   // TODO get file URL of harvested file
   // TODO parse harvested TTL
   // TODO get all types and insert broader types  (see import-submission-service)
@@ -67,9 +72,9 @@ async function expandDocumentType(submissionDocument, tmpGraph) {
  * Enrich the harvested data with the known bestuursorganen of the bestuurseenheid
  * that submitted the document
 */
-async function addBestuursorganenForBestuurseenheid(submissionDocument, tmpGraph) {
+async function addBestuursorganenForBestuurseenheid(submissionDocument) {
   console.log(`Add bestuursorganen for submission document ${submissionDocument} to meta graph`);
-  await update(`
+  const q = `
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX pav: <http://purl.org/pav/>
     PREFIX dct: <http://purl.org/dc/terms/>
@@ -77,18 +82,16 @@ async function addBestuursorganenForBestuurseenheid(submissionDocument, tmpGraph
     PREFIX besluit: <http://data.vlaanderen.be/ns/besluit#>
     PREFIX lblodlg: <http://data.lblod.info/vocabularies/leidinggevenden/>
 
-    INSERT {
-      GRAPH ${sparqlEscapeUri(tmpGraph)} {
-        ${sparqlEscapeUri(BESTUURSORGAAN_SELECT_CONCEPT_SCHEME)} a skos:ConceptScheme .
-        ?bestuursorgaan besluit:bestuurt ?bestuurseenheid ;
-          skos:prefLabel ?bestuursorgaanLabel ;
-          besluit:classificatie ?bestuursorgaanClassificatie .
-        ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan ;
-          mandaat:bindingStart ?start ;
-          mandaat:bindingEinde ?end ;
-          skos:prefLabel ?botLabel;
-          skos:inScheme ${sparqlEscapeUri(BESTUURSORGAAN_SELECT_CONCEPT_SCHEME)} .
-      }
+    CONSTRUCT {
+      ${sparqlEscapeUri(BESTUURSORGAAN_SELECT_CONCEPT_SCHEME)} a skos:ConceptScheme .
+      ?bestuursorgaan besluit:bestuurt ?bestuurseenheid ;
+        skos:prefLabel ?bestuursorgaanLabel ;
+        besluit:classificatie ?bestuursorgaanClassificatie .
+      ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan ;
+        mandaat:bindingStart ?start ;
+        mandaat:bindingEinde ?end ;
+        skos:prefLabel ?botLabel;
+        skos:inScheme ${sparqlEscapeUri(BESTUURSORGAAN_SELECT_CONCEPT_SCHEME)} .
     } WHERE {
       GRAPH ?g {
         ?submission dct:subject ${sparqlEscapeUri(submissionDocument)} ;
@@ -110,5 +113,34 @@ async function addBestuursorganenForBestuurseenheid(submissionDocument, tmpGraph
         }
       }
     }
-  `);
+  `;
+  return await constructQuery(q);
+}
+
+
+/**
+ * courtesy: Erika Pauwels
+ * (but changed a little to work with virtuoso)
+ */
+async function constructQuery(query) {
+  const format = 'text/turtle';
+  const options = {
+    method: 'POST',
+    url: process.env.MU_SPARQL_ENDPOINT,
+    headers: {
+      'Accept': format
+    },
+    form: {
+      query: query
+    }
+  };
+
+  return new Promise ( (resolve,reject) => {
+    return request(options, function(error, response, body) {
+      if (error)
+        reject(error);
+      else
+        resolve(body);
+    });
+  });
 }
