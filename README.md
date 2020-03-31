@@ -43,13 +43,15 @@ This is your playground where you can mess with code. There are som debug-helper
 # In docker-compose
 ```
   migrate-submission:
-    image: lblod/migrate-submission-service
+    image: lblod/migrate-submission-service:0.2.0
     links:
       - virtuoso:database
     volumes:
       - ./data/files/submissions:/share/submissions
 ```
+Don't forget to map port 80  to a port of your choice.
 
 # Caveats
 - It is not thread safe, meaning it might do unexpected things when starting multiple jobs at the same time.
 - This assumes the production setup of virtuoso for loket. Expects virtuoso to be able to return approx 60000 triples.
+- It works on virtuoso, so will have to restart cache and resource.
