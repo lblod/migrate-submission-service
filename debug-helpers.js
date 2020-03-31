@@ -1,5 +1,5 @@
 import besluitTypes from './besluit-types-list';
-import  { getInzendingVoorToezichtToDo } from './queries';
+import  { getInzendingVoorToezicht } from './queries';
 /**
  * Since this migration is all about testing, a wrote some functions which might be helpful for debugging purposes.
  * You will however have to modify code in app.js to use them.
@@ -20,7 +20,7 @@ async function getInzendingen(){
   const inzending = null;  // 'http://data.lblod.info/inzendingen-voor-toezicht/5DF3942CA3ACB60008000420';
   const besluitType = null; // x'http://data.lblod.info/DecisionType/5b3955cc006323233e711c482f3a6bf39a8d3eba6bbdb2c672bdfcf2b2985b03';
   const limit = null;
-  const inzendingen = await getInzendingVoorToezichtToDo(formNode, bestuurseenheid, inzending, besluitType, limit);
+  const inzendingen = await getInzendingVoorToezicht(formNode, bestuurseenheid, inzending, besluitType, limit);
   console.log(`Found ${inzendingen.length} for formNode ${formNode}`);
   return inzendingen;
 }
@@ -31,7 +31,7 @@ async function getSpecificInzending(){
   const inzending = 'http://data.lblod.info/inzendingen-voor-toezicht/5E67C1A2A3ACB600080003B7';
   const besluitType = null; // 'http://data.lblod.info/DecisionType/5b3955cc006323233e711c482f3a6bf39a8d3eba6bbdb2c672bdfcf2b2985b03';
   const limit = null;
-  const inzendingen = await getInzendingVoorToezichtToDo(formNode, bestuurseenheid, inzending, besluitType, limit);
+  const inzendingen = await getInzendingVoorToezicht(formNode, bestuurseenheid, inzending, besluitType, limit);
   console.log(`Found ${inzendingen.length} for formNode ${formNode}`);
   return inzendingen;
 }
@@ -43,7 +43,7 @@ async function getOneInzendingPerType(){
   const limit = 1;
   let inzendingen =[];
   for(let besluitType of besluitTypes){
-    const results = await getInzendingVoorToezichtToDo(formNode, bestuurseenheid, inzending, besluitType, limit);
+    const results = await getInzendingVoorToezicht(formNode, bestuurseenheid, inzending, besluitType, limit);
     inzendingen = [...inzendingen, ...results];
   }
   console.log(`Found ${inzendingen.length} for formNode ${formNode}`);

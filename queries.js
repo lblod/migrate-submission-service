@@ -13,7 +13,7 @@ const FINISHED = 'http://lblod.data.gift/concepts/migrate-submission-service/sta
 const FAILED = 'http://lblod.data.gift/concepts/migrate-submission-service/status/failed';
 const DEFAULT_GRAPH = 'http://lblod.data.gift/resources/migrate-submission-service/graph/migration-graph';
 
-async function getInzendingVoorToezichtToDo(formNodeUri, bestuurseenheid, inzendingUri, besluitType, limit){
+async function getInzendingVoorToezicht(formNodeUri, bestuurseenheid, inzendingUri, besluitType, taskStatus, limit){
   let extraFilter = '';
   if(bestuurseenheid){
     extraFilter = `?inzendingUri <http://purl.org/dc/terms/subject> ${sparqlEscapeUri(bestuurseenheid)}.`;
@@ -34,12 +34,29 @@ async function getInzendingVoorToezichtToDo(formNodeUri, bestuurseenheid, inzend
     besluitTypeFilter = `?inzendingUri <http://mu.semte.ch/vocabularies/ext/supervision/decisionType> ${sparqlEscapeUri(besluitType)}`;
   }
 
+  let taskStatusFilter = `
+      GRAPH <http://lblod.data.gift/resources/migrate-submission-service/graph/migration-graph> {
+         FILTER NOT EXISTS {
+           ?task nuao:involves ?inzendingUri.
+         }
+       }
+  `;
+  if(taskStatus){
+    taskStatusFilter = `
+      GRAPH <http://lblod.data.gift/resources/migrate-submission-service/graph/migration-graph> {
+        ?task nuao:involves ?inzendingUri.
+        ?task adms:status  ${sparqlEscapeUri(taskStatus)}
+      }
+    `;
+  }
+
   const q = `
     PREFIX toezicht: <http://mu.semte.ch/vocabularies/ext/supervision/>
     PREFIX nuao: <http://www.semanticdesktop.org/ontologies/2010/01/25/nuao#>
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX adms: <http://www.w3.org/ns/adms#>
 
-    SELECT ?graph ?inzendingUri ?eenheidLabel WHERE {
+    SELECT ?graph ?inzendingUri ?eenheidLabel ?task WHERE {
       GRAPH ?graph {
         ${inzendingFilter}
         ?inzendingUri a toezicht:InzendingVoorToezicht.
@@ -49,18 +66,11 @@ async function getInzendingVoorToezichtToDo(formNodeUri, bestuurseenheid, inzend
         ?form <http://mu.semte.ch/vocabularies/ext/hasForm> ${sparqlEscapeUri(formNodeUri)}.
         ${extraFilter}
         ${besluitTypeFilter}
-        FILTER NOT EXISTS {
-           ?task nuao:involves ?inzendingUri.
-        }
       }
 
       ?eenheid skos:prefLabel ?eenheidLabel.
 
-      GRAPH <http://lblod.data.gift/resources/migrate-submission-service/graph/migration-graph> {
-         FILTER NOT EXISTS {
-           ?task nuao:involves ?inzendingUri.
-         }
-       }
+      ${taskStatusFilter}
     }
     ${limitFilter}
   `;
@@ -107,7 +117,7 @@ async function getTask(taskUri){
       PREFIX    dct: <http://purl.org/dc/terms/>
       PREFIX    ndo: <http://oscaf.sourceforge.net/ndo.html#>
 
-      SELECT ?taskUri ?uuid ?status ?created ?modified ?involves ?creator WHERE {
+      SELECT ?taskUri ?uuid ?status ?created ?modified ?involves ?creator ?numberOfRetries WHERE {
          GRAPH ${sparqlEscapeUri(DEFAULT_GRAPH)} {
             BIND(${sparqlEscapeUri(taskUri)} as ?taskUri)
             ?taskUri a task:Task;
@@ -117,6 +127,8 @@ async function getTask(taskUri){
               dct:modified ?modified;
               dct:creator ?creator;
               nuao:involves ?involves.
+
+            OPTIONAL { ?taskUri task:numberOfRetries ?numberOfRetries. }
          }
       }
    `;
@@ -442,11 +454,12 @@ async function constructQuery(query) {
   });
 }
 
-export { getInzendingVoorToezichtToDo,
+export { getInzendingVoorToezicht,
          createTaskForMigration,
          updateTask,
          constructInzendingContentTtl,
          insertData,
+         getTask,
          ONGOING,
          FINISHED,
          FAILED,

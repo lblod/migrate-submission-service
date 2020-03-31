@@ -20,13 +20,20 @@ Body
 {
  "formNodeUri": "http://data.lblod.info/form-nodes/77fa3d4b1310b08f49ca334ac13153a5953a9feba2c6bfb7c555dc9d45a1d1d7",
  "bestuurseenheid": "http://data.lblod.info/id/bestuurseenheden/974816591f269bb7d74aa1720922651529f3d3b2a787f5c60b73e5a0384950a4",
- "inzendingUri": "http://uri/of/a/specific/toezichtInzendingVoorToezicht"
- "besluitType": "http://uri/of/a/specific/type/of/inzending/the/old/uris/check/besluit-types-list/file"
+ "inzendingUri": "http://uri/of/a/specific/toezichtInzendingVoorToezicht",
+ "besluitType": "http://uri/of/a/specific/type/of/inzending/the/old/uris/check/besluit-types-list/file",
+ "taskStatus": "",
  "limit": 1
 }
 ```
 Runs the migration for specific query paramters.
 `formNodeUri`: is required.
+`taskStatus`: if unspecified, it will fetch all inzendingen with no task associated to it. Else possible values are
+```
+'http://lblod.data.gift/concepts/migrate-submission-service/status/ongoing'
+'http://lblod.data.gift/concepts/migrate-submission-service/status/finished'
+'http://lblod.data.gift/concepts/migrate-submission-service/status/failed'
+```
 
 ```
 POST /start-migration-debug

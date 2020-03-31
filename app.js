@@ -1,9 +1,10 @@
 import bodyParser from 'body-parser';
 import { app, errorHandler } from 'mu';
-import  { getInzendingVoorToezichtToDo,
+import  { getInzendingVoorToezicht,
           createTaskForMigration,
           updateTask,
           constructInzendingContentTtl,
+          getTask,
           insertData,
           ONGOING,
           FAILED,
@@ -31,7 +32,7 @@ app.post('/start-migration-all', async (req, res) => {
 
   let inzendingen = [];
   for(let formNodeUri of formNodeUris){
-    inzendingen = [...inzendingen, ...(await getInzendingVoorToezichtToDo(formNodeUri))];
+    inzendingen = [...inzendingen, ...(await getInzendingVoorToezicht(formNodeUri))];
   }
 
   migrateFormsForFormNode(inzendingen);
@@ -39,14 +40,14 @@ app.post('/start-migration-all', async (req, res) => {
 });
 
 app.post('/start-migration-with-filter', async (req, res) => {
-  const { formNodeUri, bestuurseenheid, inzendingUri, besluitType, limit } = req.body;
+  const { formNodeUri, bestuurseenheid, inzendingUri, besluitType, taskStatus, limit } = req.body;
 
   if(!formNodeUri){
     res.status(400).send({msg: `Please specify at least formNodeUri` });
     return;
   }
 
-  const inzendingen = await getInzendingVoorToezichtToDo(formNodeUri, bestuurseenheid, inzendingUri, besluitType, limit);
+  const inzendingen = await getInzendingVoorToezicht(formNodeUri, bestuurseenheid, inzendingUri, besluitType, taskStatus, limit);
   migrateFormsForFormNode(inzendingen);
   res.send({msg: `job started for ${inzendingen.length} inzendingen` });
 });
@@ -66,7 +67,15 @@ async function migrateFormsForFormNode(inzendingen){
   let errorCount = 0;
   const total = inzendingen.length;
   for(let inzending of inzendingen){
-    const task = await createTaskForMigration(inzending.inzendingUri);
+    let task = null;
+    if(!inzending.task){
+      task = await createTaskForMigration(inzending.inzendingUri);
+    }
+    else{
+      task = await getTask(inzending.task);
+      const retries = task.numberOfRetries ? parseInt(task.numberOfRetries) : 0;
+      await updateTask(task.taskUri, retries + 1, ONGOING);
+    }
     try {
       const inzendingTTl = await constructInzendingContentTtl(inzending.inzendingUri);
       const data = await createDataBuckets(inzendingTTl);
@@ -85,9 +94,6 @@ async function migrateFormsForFormNode(inzendingen){
     }
     ++count;
     console.log(`---------------- Processed ${count} of ${total} ----------------`);
-    let sleepTime = 1000;
-    console.log(`---------------- Sleeping ${sleepTime} ----------------`);
-    await sleep(sleepTime);
   }
 
   const end = new Date();
@@ -96,8 +102,4 @@ async function migrateFormsForFormNode(inzendingen){
   console.log(`Started at ${start}`);
   console.log(`Ended at ${end}`);
   console.log(`Total errors ${errorCount}`);
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
