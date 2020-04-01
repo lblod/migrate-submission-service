@@ -27,7 +27,12 @@ Body
 }
 ```
 Runs the migration for specific query parameters.
-- `formNodeUri`: is required.
+- `formNodeUri`: options
+```
+'http://data.lblod.info/form-nodes/0ecb1654df3d058cf6a636237179e038a8dd65f4edaa3efdfd4d3b7f8311d354'  //2018
+'http://data.lblod.info/form-nodes/3aa9e6897f9048d67af54837127db5bafb58aaa689bab1842510f0b17e6b1c05' //2019
+'http://data.lblod.info/form-nodes/77fa3d4b1310b08f49ca334ac13153a5953a9feba2c6bfb7c555dc9d45a1d1d7' //latest
+```
 - `taskStatus`: if unspecified, it will fetch all inzendingen with no task associated to it. Else possible values are
 ```
 'http://lblod.data.gift/concepts/migrate-submission-service/status/ongoing'

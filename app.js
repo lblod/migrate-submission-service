@@ -41,12 +41,6 @@ app.post('/start-migration-all', async (req, res) => {
 
 app.post('/start-migration-with-filter', async (req, res) => {
   const { formNodeUri, bestuurseenheid, inzendingUri, besluitType, taskStatus, limit } = req.body;
-
-  if(!formNodeUri){
-    res.status(400).send({msg: `Please specify at least formNodeUri` });
-    return;
-  }
-
   const inzendingen = await getInzendingVoorToezicht(formNodeUri, bestuurseenheid, inzendingUri, besluitType, taskStatus, limit);
   migrateInzendingen(inzendingen);
   res.send({msg: `job started for ${inzendingen.length} inzendingen` });
@@ -94,14 +88,15 @@ async function migrateInzendingen(inzendingen){
     }
     ++count;
     console.log(`---------------- Processed ${count} of ${total} ----------------`);
-    console.log(`----------------- Number of Errors ${errors.length} -----------------`);
-    errors.forEach(err => console.log(err));
   }
 
   const end = new Date();
 
+  console.log(`----------------- Start Report -----------------`);
   console.log(`Finished processing ${total} forms`);
   console.log(`Started at ${start}`);
   console.log(`Ended at ${end}`);
-  console.log(`Total errors ${errorCount}`);
+  console.log(`----------------- Number of Errors ${errors.length} -----------------`);
+  errors.forEach(err => console.log(err));
+  console.log(`----------------- End Report -----------------`);
 }
