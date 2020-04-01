@@ -21,7 +21,7 @@ async function getInzendingVoorToezicht(formNodeUri, bestuurseenheid, inzendingU
   }
 
   let bestuurseenheidFilter = '';
-  if(bestuurseenheidFilter){
+  if(bestuurseenheid){
     bestuurseenheidFilter = `?inzendingUri <http://purl.org/dc/terms/subject> ${sparqlEscapeUri(bestuurseenheid)}.`;
   }
 
