@@ -46,11 +46,11 @@ app.post('/start-migration-with-filter', async (req, res) => {
   res.send({msg: `job started for ${inzendingen.length} inzendingen` });
 });
 
-app.get('/start-migration-debug', async (req, res) => {
+app.post('/start-migration-debug', async (req, res) => {
   console.log(`Here you can use debug-helpers and modify code to test stuff`);
   const inzendingen = await getOneInzendingPerType(); //you can also use other premade functions
   migrateInzendingen(inzendingen);
-  res.send({msg: 'debug job started' });
+  res.send({msg: `debug job started for ${inzendingen.length} inzendingen` });
 });
 
 app.use(errorHandler);
