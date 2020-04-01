@@ -14,9 +14,9 @@ const FAILED = 'http://lblod.data.gift/concepts/migrate-submission-service/statu
 const DEFAULT_GRAPH = 'http://lblod.data.gift/resources/migrate-submission-service/graph/migration-graph';
 
 async function getInzendingVoorToezicht(formNodeUri, bestuurseenheid, inzendingUri, besluitType, taskStatus, limit){
-  let extraFilter = '';
-  if(bestuurseenheid){
-    extraFilter = `?inzendingUri <http://purl.org/dc/terms/subject> ${sparqlEscapeUri(bestuurseenheid)}.`;
+  let bestuurseenheidFilter = '';
+  if(bestuurseenheidFilter){
+    bestuurseenheidFilter = `?inzendingUri <http://purl.org/dc/terms/subject> ${sparqlEscapeUri(bestuurseenheid)}.`;
   }
 
   let inzendingFilter = '';
@@ -64,7 +64,7 @@ async function getInzendingVoorToezicht(formNodeUri, bestuurseenheid, inzendingU
         ?inzendingUri <http://purl.org/dc/terms/subject> ?eenheid.
         ?form <http://mu.semte.ch/vocabularies/ext/hasInzendingVoorToezicht> ?inzendingUri.
         ?form <http://mu.semte.ch/vocabularies/ext/hasForm> ${sparqlEscapeUri(formNodeUri)}.
-        ${extraFilter}
+        ${bestuurseenheidFilter}
         ${besluitTypeFilter}
       }
 
