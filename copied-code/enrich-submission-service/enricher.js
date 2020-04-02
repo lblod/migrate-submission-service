@@ -101,12 +101,13 @@ async function addBestuursorganenForBestuurseenheid(submissionDocument) {
         ?bestuursorgaan besluit:bestuurt ?bestuurseenheid ;
           skos:prefLabel ?bestuursorgaanLabel ;
           besluit:classificatie ?bestuursorgaanClassificatie .
+        ?bestuursorgaanClassificatie skos:prefLabel ?bestuursorgaanClassificatieLabel.
         ?bestuursorgaanInTijd mandaat:isTijdspecialisatieVan ?bestuursorgaan ;
           mandaat:bindingStart ?start .
 
         OPTIONAL { ?bestuursorgaanInTijd mandaat:bindingEinde ?end . }
 
-        BIND(CONCAT(?bestuursorgaanLabel, "( ", YEAR(?start), " - ", IF( BOUND(?end), YEAR(?end), ""), " )" ) as ?botLabel)
+        BIND(CONCAT(?bestuursorgaanClassificatieLabel, " ( ",IF(BOUND(?end), "", "sinds "), YEAR(?start), IF( BOUND(?end), CONCAT (" - ",  YEAR(?end)), ""), " )" ) as ?botLabel)
 
         FILTER NOT EXISTS {
           ?bestuursorgaanInTijd lblodlg:heeftBestuursfunctie ?leidinggevende .
