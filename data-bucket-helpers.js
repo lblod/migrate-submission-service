@@ -306,7 +306,7 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
   }
 }
 
-function extractFormData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, targetGraph, submission, subissionDocument, formTtlFile){
+function extractFormData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, targetGraph, submission, submissionDocument, formTtlFile){
   //this extracts the flattened resrouce
   let newUuid = uuid();
   const formData = namedNode(`http://data.lblod.info/form-datas/${newUuid}`); //Note: will be reused
@@ -316,7 +316,7 @@ function extractFormData(inzendingVoorToezicht, store, sourceGraph, codeListsGra
   store.add(submission, PROV('generated'), formData, targetGraph);
 
   mapPredicateToNewSubject(store, sourceGraph, RDF('type'),
-                           targetGraph, formData, DCT('type'));
+                           targetGraph, formData, DCT('type'), submissionDocument);
 
   mapPredicateToNewSubject(store, sourceGraph, ELI('date_publication'),
                            targetGraph, formData, ELI('date_publication'));
@@ -386,8 +386,8 @@ function getNewCodeListEquivalent(store, graph, oldEntry){
 }
 
 function mapPredicateToNewSubject(store, graph, oldPredicate, targetGraph,
-                                  targetSubject, targetPredicate){
-  const triples = store.match(undefined, oldPredicate, undefined, graph);
+                                  targetSubject, targetPredicate, optionalSourceSubject = null){
+  const triples = store.match(optionalSourceSubject, oldPredicate, undefined, graph);
 
   const updatedTriples = triples.map(t => {
     const newTriple = {
