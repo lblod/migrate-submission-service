@@ -228,10 +228,18 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
               getNewCodeListEquivalent(store, codeListsGraph, regulationType.object), targetGraph);
   }
 
-
   const bestuursOrgaanInTijd = await deduceBestuursorgaanInTijd(store, sourceGraph, inzendingVoorToezicht);
   if(bestuursOrgaanInTijd){
-    store.add(newSubDoc, ELI('passed_by'), namedNode(bestuursOrgaanInTijd.botUri), targetGraph);
+    //How bestuursorgaan in tijd is connnect depends on type of document
+    const typeInzending = store.match(inzendingVoorToezicht, TOEZICHT('decisionType'), undefined, sourceGraph)[0].object;
+    const oldNotulen = namedNode('http://data.lblod.info/DecisionType/5a71a9e79b58c6b095cb2e575c7a397cc1fe80385e4d1deddd66745a03638f9f');
+    if(typeInzending.equals(oldNotulen)){
+      store.add(newZitting, BESLUIT('heeftNotulen'), newSubDoc, targetGraph);
+      store.add(newZitting, BESLUIT('isGehoudenDoor'), namedNode(bestuursOrgaanInTijd.botUri), targetGraph);
+    }
+    else {
+      store.add(newSubDoc, ELI('passed_by'), namedNode(bestuursOrgaanInTijd.botUri), targetGraph);
+    }
   }
 
   const oldAuthenticity = store.match(inzendingVoorToezicht, TOEZICHT('authenticityType'), undefined, sourceGraph);
@@ -314,6 +322,9 @@ function extractFormData(inzendingVoorToezicht, store, sourceGraph, codeListsGra
                            targetGraph, formData, ELI('date_publication'));
 
   mapPredicateToNewSubject(store, sourceGraph, ELI('passed_by'),
+                           targetGraph, formData, ELI('passed_by'));
+
+  mapPredicateToNewSubject(store, sourceGraph, BESLUIT('isGehoudenDoor'),
                            targetGraph, formData, ELI('passed_by'));
 
   mapPredicateToNewSubject(store, sourceGraph, ELI('is_about'),
