@@ -112,6 +112,9 @@ function extractSubmission(inzendingVoorToezicht, store, sourceGraph, codeListsG
   mapPredicateToNewSubject(store, sourceGraph, EXT('lastModifiedBy'),
                            submissionGraph, newSubmission, EXT('lastModifiedBy'));
 
+  mapPredicateToNewSubject(store, sourceGraph, NMO('receivedDate'),
+                           submissionGraph, newSubmission, NMO('receivedDate'));
+
   const subStatus = store.match(inzendingVoorToezicht, ADMS('status'), undefined, sourceGraph)[0].object;
   store.add(newSubmission, ADMS('status'), getNewCodeListEquivalent(store, codeListsGraph, subStatus), submissionGraph);
   store.add(newSubmission, DCT('source'), inzendingVoorToezicht, submissionGraph);
