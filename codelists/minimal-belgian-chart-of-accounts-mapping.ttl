@@ -208,3 +208,6 @@
 <http://lblod.data.gift/concepts/fad34acdd5a6d17b59d58678542b65e9c364d2c84bf49fea8611ecc2d6ce3411> <http://www.w3.org/2004/02/skos/core#exactMatch> <http://data.lblod.info/Nomenclature/6c8132fc24e1be8b0134380e308eef3adb1357f0fb8bbfa62eea8197916580fd> .
 
 <http://lblod.data.gift/concepts/fb826410318098086e2f2e568c95843bcdaf27de576eebbd02a2a917129a7e62> <http://www.w3.org/2004/02/skos/core#exactMatch> <http://data.lblod.info/Nomenclature/486c2771a2492b2d792eb4eb7cc072348396011690d6099ecfa43136bf7a3f84> .
+
+# retributie
+<http://lblod.data.gift/concepts/8b2b6d1256449bf7b1a71915fcacfc2ba6d32d01d76c67cf6b892a9ff1949b8f> <http://www.w3.org/2004/02/skos/core#exactMatch> <http://data.lblod.info/TaxType/6adc7281cbef681d2433a93a73275f246976ed77f72c9dd37a60182e063df44c> .
