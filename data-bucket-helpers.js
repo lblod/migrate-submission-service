@@ -427,7 +427,7 @@ async function deduceBestuursorgaanInTijd(store, graph, inzending){
     }
     return false;
   });
-  if(!bot) throw `No bestuurgaan in tijd found for ${inzending.value}`;
+  if(!bot) throw `No bestuursorgaan in tijd found for ${inzending.value} for @bot@${bestuursorgaan.value}@`; //sorry the @ makes grep easy
   return bot;
 }
 
