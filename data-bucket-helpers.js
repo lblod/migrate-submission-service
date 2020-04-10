@@ -277,8 +277,11 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
     store.add(newFileAdd, RDF('type'), namedNode('http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#RemoteDataObject'), dbGraph);
     const address = store.match(url.object, EXT('fileAddress'), undefined, sourceGraph);
     if(address.length){
-      store.add(newFileAdd, namedNode('http://www.semanticdesktop.org/ontologies/2007/01/19/nie#url'), address[0].object, dbGraph);
-      store.add(newFileAdd, namedNode('http://www.semanticdesktop.org/ontologies/2007/01/19/nie#url'), address[0].object, targetGraph);
+       // So n-triples charcaters seem to be escaped for special ones. E.g. \u0027
+      // SPARQL expects 'decoded/unescaped' data. It won't interpret  \u0027. So we have to do the conversion ourselves
+      const unescapedAddress = JSON.parse(`"${address[0].object.value}"`);
+      store.add(newFileAdd, namedNode('http://www.semanticdesktop.org/ontologies/2007/01/19/nie#url'), unescapedAddress, dbGraph);
+      store.add(newFileAdd, namedNode('http://www.semanticdesktop.org/ontologies/2007/01/19/nie#url'), unescapedAddress, targetGraph);
 
       const cacheStatus = store.match(url.object, EXT('fileAddressCacheStatus'), undefined, sourceGraph)[0].object;
       const status = store.match(cacheStatus, EXT('fileAddressCacheStatusLabel'), undefined, sourceGraph)[0].object;
