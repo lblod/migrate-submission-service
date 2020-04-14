@@ -8,11 +8,14 @@ import  { getInzendingVoorToezicht,
           insertData,
           ONGOING,
           FAILED,
-          FINISHED
+          FINISHED,
+          getMigratedTtlFilesFromInzending,
+          removeTtlFileMeta,
+          deleteMigratedInzendingData
         } from './queries';
 
 import { createDataBuckets } from './data-bucket-helpers';
-import { insertTtlFile } from './file-helpers';
+import { insertTtlFile, removeFile } from './file-helpers';
 import { calculateMetaSnapshot } from './copied-code/enrich-submission-service/submission-document';
 import { getOneInzendingPerType } from './debug-helpers';
 
@@ -61,6 +64,20 @@ app.post('/start-migration-with-filter', async (req, res) => {
   res.send({msg: `job started for ${inzendingen.length} inzendingen` });
 });
 
+app.post('/remove-migration-with-filter', async (req, res) => {
+  const { formNodeUri, bestuurseenheid, inzendingUri, besluitType, taskStatus, limit, inzendingStatus, unprocessedMigrationsOnly } = req.body;
+  const inzendingen = await getInzendingVoorToezicht(formNodeUri,
+                                                     bestuurseenheid,
+                                                     inzendingUri,
+                                                     besluitType,
+                                                     taskStatus,
+                                                     limit,
+                                                     inzendingStatus,
+                                                     unprocessedMigrationsOnly);
+  removeMigratedData(inzendingen);
+  res.send({msg: `job started for ${inzendingen.length} inzendingen` });
+});
+
 app.post('/start-migration-debug', async (req, res) => {
   console.log(`Here you can use debug-helpers and modify code to test stuff`);
   const inzendingen = await getOneInzendingPerType(); //you can also use other premade functions
@@ -100,6 +117,45 @@ async function migrateInzendingen(inzendingen){
       console.log(errorMessage);
       errors.push(errorMessage);
       await updateTask(task.taskUri, 1, FAILED);
+    }
+    ++count;
+    console.log(`---------------- Processed ${count} of ${total} ----------------`);
+  }
+
+  const end = new Date();
+
+  console.log(`----------------- Start Report -----------------`);
+  console.log(`Finished processing ${total} forms`);
+  console.log(`Started at ${start}`);
+  console.log(`Ended at ${end}`);
+  console.log(`----------------- Number of Errors ${errors.length} -----------------`);
+  errors.forEach(err => console.log(err));
+  console.log(`----------------- End Report -----------------`);
+}
+
+async function removeMigratedData(inzendingen){
+  const start = new Date();
+  let count = 0;
+  let errors = [];
+  const total = inzendingen.length;
+  for(let inzending of inzendingen){
+    if(!inzending.task){
+      console.warn(`No task found for ${inzending.inzendingUri}, skipping`);
+      continue;
+    }
+    try {
+      const fileDatas = await getMigratedTtlFilesFromInzending(inzending.inzendingUri);
+      await deleteMigratedInzendingData(inzending.inzendingUri);
+      for(const fileData of fileDatas) {
+        await removeTtlFileMeta(fileData.fileUri);
+        await removeFile(fileData.fileUri);
+      }
+      console.log(`Removed data for ${inzending.eenheidLabel}`);
+    }
+    catch(e){
+      const errorMessage = `Error for ${inzending.inzendingUri}: error ${e}`;
+      console.log(errorMessage);
+      errors.push(errorMessage);
     }
     ++count;
     console.log(`---------------- Processed ${count} of ${total} ----------------`);

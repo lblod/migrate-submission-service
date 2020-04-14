@@ -43,6 +43,14 @@ async function insertTtlFile(fileGraph, formTtlFileUri, turtleContent, fileMetaD
   return formTtlFileUri;
 }
 
+async function removeFile(file){
+  console.log(`removeing file ${file}`);
+  const path = file.replace('share://', '/share/');
+  const content = await fs.remove(path);
+  return content;
+}
+
 export {
   insertTtlFile,
+  removeFile
 }

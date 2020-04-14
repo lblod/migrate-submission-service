@@ -47,7 +47,7 @@ async function getInzendingVoorToezicht(formNodeUri,
     besluitTypeFilter = `?inzendingUri <http://mu.semte.ch/vocabularies/ext/supervision/decisionType> ${sparqlEscapeUri(besluitType)}`;
   }
 
-  let taskStatusFilter = '';
+  let taskStatusFilter = '?task nuao:involves ?inzendingUri.';
 
   if(unprocessedMigrationsOnly){
     taskStatusFilter = `
@@ -477,6 +477,86 @@ async function constructQuery(query) {
   });
 }
 
+
+async function getMigratedTtlFilesFromInzending(inzendingUri){
+  const q = `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    PREFIX toezicht: <http://mu.semte.ch/vocabularies/ext/supervision/>
+
+    SELECT ?fileUri WHERE {
+      BIND(${sparqlEscapeUri(inzendingUri)} as ?inzending)
+      GRAPH ?g {
+        ?inzending a toezicht:InzendingVoorToezicht.
+        ?submission <http://purl.org/dc/terms/source> ?inzending.
+        ?submittedDoc a ext:SubmissionDocument.
+        ?submission <http://purl.org/dc/terms/subject> ?submittedDoc.
+        ?submittedDoc <http://purl.org/dc/terms/source> ?fileUri.
+      }
+    }
+  `;
+
+  return parseResult(await query(q));
+}
+
+async function removeTtlFileMeta(fileUri){
+  const q = `
+    DELETE {
+      GRAPH ?h {
+        ?ttlFile ?ttlFileP ?ttlFileO.
+      }
+    }
+    WHERE {
+      BIND(${sparqlEscapeUri(fileUri)} as ?ttlFile)
+      GRAPH ?h {
+        ?ttlFile ?ttlFileP ?ttlFileO.
+        }
+    }
+  `;
+  await query(q);
+}
+
+async function deleteMigratedInzendingData(inzendingUri){
+  const q = `
+    PREFIX toezicht: <http://mu.semte.ch/vocabularies/ext/supervision/>
+    PREFIX nuao: <http://www.semanticdesktop.org/ontologies/2010/01/25/nuao#>
+    DELETE {
+      GRAPH ?g {
+       ?task ?taskP ?taskO.
+     }
+     GRAPH ?h {
+       ?submission ?submissionP ?submissionO.
+       ?submittedDoc ?submittedDocP ?submittedDocO.
+       ?formData ?formDataP ?formDataO.
+     }
+    }
+    WHERE {
+      BIND(${sparqlEscapeUri(inzendingUri)} as ?inzending)
+      GRAPH ?g {
+        ?task nuao:involves ?inzending.
+        ?task ?taskP ?taskO.
+      }
+
+      GRAPH ?h {
+        ?inzending a toezicht:InzendingVoorToezicht.
+        ?submission <http://purl.org/dc/terms/source> ?inzending.
+        ?submission ?submissionP ?submissionO.
+
+        OPTIONAL {
+           ?submission <http://purl.org/dc/terms/subject> ?submittedDoc.
+           ?submittedDoc ?submittedDocP ?submittedDocO.
+        }
+
+        OPTIONAL {
+          ?submission <http://www.w3.org/ns/prov#generated> ?formData.
+          ?formData ?formDataP ?formDataO.
+        }
+      }
+    }
+  `;
+  await query(q);
+}
+
+
 export { getInzendingVoorToezicht,
          createTaskForMigration,
          updateTask,
@@ -486,5 +566,8 @@ export { getInzendingVoorToezicht,
          ONGOING,
          FINISHED,
          FAILED,
+         getMigratedTtlFilesFromInzending,
+         removeTtlFileMeta,
+         deleteMigratedInzendingData,
          getBestuursorganenInTijd
        }
