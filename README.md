@@ -23,6 +23,7 @@ Body
  "inzendingUri": "http://uri/of/a/specific/toezichtInzendingVoorToezicht",
  "besluitType": "http://uri/of/a/specific/type/of/inzending/the/old/uris/check/besluit-types-list/file",
  "taskStatus": "",
+ "inzendingStatus": "",
  "limit": 1
 }
 ```
@@ -38,6 +39,11 @@ Runs the migration for specific query parameters.
 'http://lblod.data.gift/concepts/migrate-submission-service/status/ongoing'
 'http://lblod.data.gift/concepts/migrate-submission-service/status/finished'
 'http://lblod.data.gift/concepts/migrate-submission-service/status/failed'
+```
+- `inzendingStatus`: options
+```
+'http://data.lblod.info/document-statuses/concept'
+'http://data.lblod.info/document-statuses/verstuurd'
 ```
 
 ```

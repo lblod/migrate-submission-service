@@ -13,7 +13,7 @@ const FINISHED = 'http://lblod.data.gift/concepts/migrate-submission-service/sta
 const FAILED = 'http://lblod.data.gift/concepts/migrate-submission-service/status/failed';
 const DEFAULT_GRAPH = 'http://lblod.data.gift/resources/migrate-submission-service/graph/migration-graph';
 
-async function getInzendingVoorToezicht(formNodeUri, bestuurseenheid, inzendingUri, besluitType, taskStatus, limit){
+async function getInzendingVoorToezicht(formNodeUri, bestuurseenheid, inzendingUri, besluitType, taskStatus, limit, inzendingStatus){
   let formNodeFilter = '';
 
   if(formNodeUri){
@@ -56,6 +56,11 @@ async function getInzendingVoorToezicht(formNodeUri, bestuurseenheid, inzendingU
     `;
   }
 
+  let inzendingStatusFilter = '';
+  if(inzendingStatus){
+    inzendingStatusFilter = `?inzendingUri <http://www.w3.org/ns/adms#status> ${sparqlEscapeUri(inzendingStatus)}.`;
+  }
+
   const q = `
     PREFIX toezicht: <http://mu.semte.ch/vocabularies/ext/supervision/>
     PREFIX nuao: <http://www.semanticdesktop.org/ontologies/2010/01/25/nuao#>
@@ -66,7 +71,7 @@ async function getInzendingVoorToezicht(formNodeUri, bestuurseenheid, inzendingU
       GRAPH ?graph {
         ${inzendingFilter}
         ?inzendingUri a toezicht:InzendingVoorToezicht.
-        ?inzendingUri <http://www.w3.org/ns/adms#status>  <http://data.lblod.info/document-statuses/verstuurd>.
+        ${inzendingStatusFilter}
         ?inzendingUri <http://purl.org/dc/terms/subject> ?eenheid.
         ?form <http://mu.semte.ch/vocabularies/ext/hasInzendingVoorToezicht> ?inzendingUri.
         ${formNodeFilter}
