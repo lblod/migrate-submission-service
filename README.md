@@ -24,6 +24,7 @@ Body
  "besluitType": "http://uri/of/a/specific/type/of/inzending/the/old/uris/check/besluit-types-list/file",
  "taskStatus": "",
  "inzendingStatus": "",
+ "unprocessedMigrationsOnly": true
  "limit": 1
 }
 ```

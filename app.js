@@ -40,8 +40,15 @@ app.post('/start-migration-unprocessed', async (req, res) => {
 });
 
 app.post('/start-migration-with-filter', async (req, res) => {
-  const { formNodeUri, bestuurseenheid, inzendingUri, besluitType, taskStatus, limit, inzendingStatus } = req.body;
-  const inzendingen = await getInzendingVoorToezicht(formNodeUri, bestuurseenheid, inzendingUri, besluitType, taskStatus, limit, inzendingStatus);
+  const { formNodeUri, bestuurseenheid, inzendingUri, besluitType, taskStatus, limit, inzendingStatus, unprocessedMigrationsOnly } = req.body;
+  const inzendingen = await getInzendingVoorToezicht(formNodeUri,
+                                                     bestuurseenheid,
+                                                     inzendingUri,
+                                                     besluitType,
+                                                     taskStatus,
+                                                     limit,
+                                                     inzendingStatus,
+                                                     unprocessedMigrationsOnly);
   migrateInzendingen(inzendingen);
   res.send({msg: `job started for ${inzendingen.length} inzendingen` });
 });
