@@ -6,9 +6,9 @@ This service is technically meant to run only once.
 All post calls
 
 ```
-POST /start-migration-all
+POST /start-migration-unprocessed
 ```
-Runs all migrations, takes the all known (and hardcoded) form versions in to account.
+Runs the migrations where no migration task is linked to, takes the all known (and hardcoded) form versions in to account.
 
 ```
 POST /start-migration-with-filter

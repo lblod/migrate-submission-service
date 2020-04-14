@@ -23,7 +23,7 @@ app.get('/', (req, res) => {
 });
 
 
-app.post('/start-migration-all', async (req, res) => {
+app.post('/start-migration-unprocessed', async (req, res) => {
   const formNodeUris = [
     'http://data.lblod.info/form-nodes/0ecb1654df3d058cf6a636237179e038a8dd65f4edaa3efdfd4d3b7f8311d354',
     'http://data.lblod.info/form-nodes/3aa9e6897f9048d67af54837127db5bafb58aaa689bab1842510f0b17e6b1c05',
