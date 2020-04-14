@@ -32,7 +32,15 @@ app.post('/start-migration-unprocessed', async (req, res) => {
 
   let inzendingen = [];
   for(let formNodeUri of formNodeUris){
-    inzendingen = [...inzendingen, ...(await getInzendingVoorToezicht(formNodeUri))];
+    const inzendingenToAdd = (await getInzendingVoorToezicht(formNodeUri,
+                                                             undefined,
+                                                             undefined,
+                                                             undefined,
+                                                             undefined,
+                                                             undefined,
+                                                             undefined,
+                                                             true));
+    inzendingen = [...inzendingen, ...inzendingenToAdd];
   }
 
   migrateInzendingen(inzendingen);

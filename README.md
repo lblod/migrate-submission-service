@@ -46,6 +46,7 @@ Runs the migration for specific query parameters.
 'http://data.lblod.info/document-statuses/concept'
 'http://data.lblod.info/document-statuses/verstuurd'
 ```
+- `unprocessedMigrationsOnly`: Careful with this one. If set to false or undefined, you'll create duplicates possibly.
 
 ```
 POST /start-migration-debug
