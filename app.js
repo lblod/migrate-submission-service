@@ -1,9 +1,8 @@
 import bodyParser from 'body-parser';
-import flatten from 'lodash.flatten';
 import { app, errorHandler } from 'mu';
 import  { getInzendingVoorToezicht } from './queries';
 import { getOneInzendingPerType } from './debug-helpers';
-import { migrateInzendingen, removeMigratedData } from './pipelines';
+import { migrateInzendingen, removeMigratedData, processDataFromDelta } from './pipelines';
 
 app.use(bodyParser.json({ type: function(req) { return /^application\/json/.test(req.get('content-type')); } }));
 
@@ -11,29 +10,9 @@ app.get('/', (req, res) => {
   res.send('Hello from migrate-submission-service');
 });
 
-app.post('/delta', async function(req, res, next) {
-  const subjects = getSubjectsToProcess(req.body);
-  if (!subjects.length) {
-    console.log("Delta does not contain subjects to process");
-    return res.status(204).send();
-  }
-  subjects.forEach(async subject => {
-    const inzendingen = await getInzendingVoorToezicht(undefined,
-                                                       undefined,
-                                                       subject,
-                                                       undefined,
-                                                       undefined,
-                                                       undefined,
-                                                       undefined,
-                                                       true);
-    if(!inzendingen.length == 1){
-      console.warn(`Found ${inzendingen.length} for ${subject} expected 1. Skipping`);
-    }
-    else {
-      migrateInzendingen(inzendingen);
-    }
-  });
-  return res.status(200).send({ data: subjects });
+app.post('/delta', async function(req, res) {
+  await processDataFromDelta(req.body);
+  return res.status(200).send({ msg: 'Processing delta'});
 });
 
 
@@ -97,13 +76,3 @@ app.post('/start-migration-debug', async (req, res) => {
 });
 
 app.use(errorHandler);
-
-function getSubjectsToProcess(delta) {
-  const inserts = flatten(delta.map(changeSet => changeSet.inserts));
-  return inserts.filter(isTriggerTriple).map(t => t.subject.value);
-}
-
-function isTriggerTriple(triple) {
-  return triple.predicate.value == 'http://www.w3.org/ns/adms#status'
-    && triple.object.value == "http://data.lblod.info/document-statuses/verstuurd";
-};

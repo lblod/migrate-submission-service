@@ -1,13 +1,12 @@
 import { uuid,
          query,
-         update,
          sparqlEscapeUri,
          sparqlEscapeString,
          sparqlEscapeInt,
-         sparqlEscapeDate,
          sparqlEscapeDateTime } from 'mu';
 import request from 'request';
 
+const SCHEDULED = 'http://lblod.data.gift/concepts/migrate-submission-service/status/scheduled';
 const ONGOING = 'http://lblod.data.gift/concepts/migrate-submission-service/status/ongoing';
 const FINISHED = 'http://lblod.data.gift/concepts/migrate-submission-service/status/finished';
 const FAILED = 'http://lblod.data.gift/concepts/migrate-submission-service/status/failed';
@@ -101,7 +100,7 @@ async function getInzendingVoorToezicht(formNodeUri,
   return results;
 }
 
-async function createTaskForMigration(inzendingUri){
+async function createTaskForMigration(inzendingUri, status = ONGOING){
   let sUuid = uuid();
   let subject = `http://lblod.data.gift/resources/migrate-submission-service/task/${sUuid}`;
   let created = Date.now();
@@ -117,7 +116,7 @@ async function createTaskForMigration(inzendingUri){
       GRAPH ${sparqlEscapeUri(DEFAULT_GRAPH)} {
         ${sparqlEscapeUri(subject)} a task:Task;
           mu:uuid ${sparqlEscapeString(sUuid)};
-          adms:status ${sparqlEscapeUri(ONGOING)};
+          adms:status ${sparqlEscapeUri(status)};
           dct:created ${sparqlEscapeDateTime(created)};
           dct:modified ${sparqlEscapeDateTime(created)};
           dct:creator <http://lblod.data.gift/services/migrate-submission-service>;
@@ -129,6 +128,34 @@ async function createTaskForMigration(inzendingUri){
   await query(q);
   const task = await getTask(subject);
   return task;
+}
+
+async function getTasksByStatus(statusUri){
+  const q  = `
+      PREFIX    adms: <http://www.w3.org/ns/adms#>
+      PREFIX    mu: <http://mu.semte.ch/vocabularies/core/>
+      PREFIX    nuao: <http://www.semanticdesktop.org/ontologies/2010/01/25/nuao#>
+      PREFIX    task: <http://redpencil.data.gift/vocabularies/tasks/>
+      PREFIX    dct: <http://purl.org/dc/terms/>
+      PREFIX    ndo: <http://oscaf.sourceforge.net/ndo.html#>
+
+      SELECT ?taskUri ?uuid ?status ?created ?modified ?involves ?creator ?numberOfRetries WHERE {
+         GRAPH ${sparqlEscapeUri(DEFAULT_GRAPH)} {
+            BIND(${sparqlEscapeUri(statusUri)} as ?status)
+            ?taskUri a task:Task;
+              mu:uuid ?uuid;
+              adms:status ?status;
+              dct:created ?created;
+              dct:modified ?modified;
+              dct:creator ?creator;
+              nuao:involves ?involves.
+
+            OPTIONAL { ?taskUri task:numberOfRetries ?numberOfRetries. }
+         }
+      }
+   `;
+
+  return parseResult(await query(q));
 }
 
 async function getTask(taskUri){
@@ -254,6 +281,8 @@ async function constructInzendingContentTtl(inzendingUri){
       ?fileAddress ext:fileAddressCacheStatus ?fileAddressStatus.
       ?fileAddressStatus ext:fileAddressCacheStatusLabel ?fileAddressStatusLabel.
       ?fileAddress ext:fileAddress ?fileAddressUrl.
+      ?cachedLogicalFile nie:dataSource ?fileAddress.
+      ?physicalFile nie:dataSource ?cachedLogicalFile.
   }
   WHERE {
     GRAPH ?g {
@@ -383,6 +412,16 @@ async function constructInzendingContentTtl(inzendingUri){
         ?fileAddressStatus ext:fileAddressCacheStatusLabel ?fileAddressStatusLabel.
         ?fileAddress ext:fileAddress ?fileAddressUrl.
       }
+
+      OPTIONAL {
+        ?inzending toezicht:fileAddress ?fileAddress.
+
+        GRAPH <http://mu.semte.ch/graphs/public> {
+          ?cachedLogicalFile nie:dataSource ?fileAddress.
+          ?physicalFile nie:dataSource ?cachedLogicalFile.
+        }
+
+      }
     }
     FILTER( ${sparqlEscapeUri(inzendingUri)} = ?inzending )
   }
@@ -391,6 +430,36 @@ async function constructInzendingContentTtl(inzendingUri){
   return results;
 }
 
+async function getInzendingenRelatedTofileAddressStatus(statusUri){
+  const q = `
+      PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+      PREFIX toezicht: <http://mu.semte.ch/vocabularies/ext/supervision/>
+      SELECT DISTINCT ?inzendingUri WHERE {
+        GRAPH ?g {
+          ?inzendingUri toezicht:fileAddress ?fileAddressUri.
+          ?fileAddressUri ext:fileAddressCacheStatus ${sparqlEscapeUri(statusUri)}.
+          ${sparqlEscapeUri(statusUri)} ext:fileAddressCacheStatusLabel ?fileAddressStatusLabel.
+        }
+      }
+  `;
+   return parseResult(await query(q));
+}
+
+async function getFileAddressDataFromInzending(inzendingUri){
+  const q = `
+      PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+      PREFIX toezicht: <http://mu.semte.ch/vocabularies/ext/supervision/>
+      SELECT DISTINCT ?fileAddressUri ?fileAddressUrl ?fileAddressStatus ?fileAddressStatusLabel WHERE {
+        GRAPH ?g {
+          ${sparqlEscapeUri(inzendingUri)} toezicht:fileAddress ?fileAddressUri.
+          ?fileAddressUri ext:fileAddress ?fileAddressUrl.
+          OPTIONAL { ?fileAddressUri ext:fileAddressCacheStatus ?fileAddressStatus. }
+          OPTIONAL { ?fileAddressStatus ext:fileAddressCacheStatusLabel ?fileAddressStatusLabel. }
+        }
+      }
+  `;
+  return parseResult(await query(q));
+}
 
 async function insertData(graph, nTriples){
   //Note: nTriples is just a string.
@@ -402,26 +471,6 @@ async function insertData(graph, nTriples){
     }
   `;
   await query(q);
-}
-
-async function linkSubmissionDocumentWithTtl(fileGraph, file, submissionDocument){
-  const fileType = 'http://data.lblod.gift/concepts/form-data-file-type';
-  await update(`
-    PREFIX dct: <http://purl.org/dc/terms/>
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-    INSERT {
-      GRAPH ?g {
-        ${sparqlEscapeUri(submissionDocument)} dct:source ${sparqlEscapeUri(file)} .
-      }
-      GRAPH ${sparqlEscapeUri(fileGraph)} {
-        ${sparqlEscapeUri(file)} dct:type ${sparqlEscapeUri(fileType)} .
-      }
-    } WHERE {
-      GRAPH ?g {
-        ${sparqlEscapeUri(submissionDocument)} a ext:SubmissionDocument .
-      }
-    }
-  `);
 }
 
 async function getBestuursorganenInTijd(bestuursorgaanUri){
@@ -566,8 +615,12 @@ export { getInzendingVoorToezicht,
          ONGOING,
          FINISHED,
          FAILED,
+         SCHEDULED,
          getMigratedTtlFilesFromInzending,
+         getInzendingenRelatedTofileAddressStatus,
          removeTtlFileMeta,
          deleteMigratedInzendingData,
-         getBestuursorganenInTijd
+         getBestuursorganenInTijd,
+         getFileAddressDataFromInzending,
+         getTasksByStatus
        }

@@ -1,17 +1,22 @@
-import  {
+import  { getInzendingVoorToezicht,
           createTaskForMigration,
           updateTask,
           constructInzendingContentTtl,
+          getTasksByStatus,
           getTask,
           insertData,
           ONGOING,
           FAILED,
           FINISHED,
+          SCHEDULED,
           getMigratedTtlFilesFromInzending,
           removeTtlFileMeta,
-          deleteMigratedInzendingData
+          deleteMigratedInzendingData,
+          getFileAddressDataFromInzending,
+          getInzendingenRelatedTofileAddressStatus
         } from './queries';
 
+import flatten from 'lodash.flatten';
 import { createDataBuckets } from './data-bucket-helpers';
 import { insertTtlFile, removeFile } from './file-helpers';
 import { calculateMetaSnapshot } from './copied-code/enrich-submission-service/submission-document';
@@ -36,6 +41,7 @@ async function migrateInzendingen(inzendingen){
       const data = await createDataBuckets(inzendingTTl);
       await insertTtlFile(data.fileGraph.value, data.formTtlFile.value, data.turtleFormTtlContent, data.nTriplesFileGraph);
       await insertData(inzending.graph, data.nTriplesDbGraph);
+      await insertData(data.remoteDataObjectGraph.value, data.nTriplesRemoteDataObjectGraph);
       await calculateMetaSnapshot(data.subissionDocument.value);
 
       console.log(`Inserted data for ${inzending.eenheidLabel}`);
@@ -101,7 +107,104 @@ async function removeMigratedData(inzendingen){
   console.log(`----------------- End Report -----------------`);
 }
 
+async function processDataFromDelta(delta){
+
+  const inzendingenUris = getInzendingenToProcess(delta);
+  for(const inzendingUri of inzendingenUris){
+    await processInzendingFromDeltaWithNoFileAddress(inzendingUri);
+  }
+  const addressStatuses = getFileAddressDataToProcess(delta);
+
+  for(const statusUri of addressStatuses){
+    await processInzendingFromFileAddressStatus(statusUri);
+  }
+}
+
+async function processInzendingFromFileAddressStatus(statusUri){
+  const inzendingenDatas = await getInzendingenRelatedTofileAddressStatus(statusUri);
+  for(const inzendingData of inzendingenDatas){
+    const fileAddressDatas = await getFileAddressDataFromInzending(inzendingData.inzendingUri);
+
+    if(!await areAddressesCached(fileAddressDatas)){
+      console.log(`Addresses for ${inzendingData.inzendingUri} not ready yet, wait for next notification`);
+    }
+
+    else {
+      // The inzending is complete.
+      // The next call will fetch inzendingen where no job is assiociated with.
+      // (This should cover the case where the delta information we receive is outdated.)
+      const inzendingen = (await getInzendingVoorToezicht(undefined,
+                                                           undefined,
+                                                           inzendingData.inzendingUri,
+                                                           undefined,
+                                                           undefined,
+                                                           undefined,
+                                                           undefined,
+                                                           true));
+      if(!inzendingen.length) return;
+      await migrateInzendingen( inzendingen );
+    }
+  }
+}
+
+async function processInzendingFromDeltaWithNoFileAddress(inzendingUri){
+  const inzendingen = (await getInzendingVoorToezicht(undefined,
+                                                       undefined,
+                                                       inzendingUri,
+                                                       undefined,
+                                                       undefined,
+                                                       undefined,
+                                                       undefined,
+                                                       true));
+  if(!inzendingen.length) return;
+
+  const inzending = inzendingen[0];
+   //check if there is some file address data there
+  const fileAddressDatas = await getFileAddressDataFromInzending(inzending.inzendingUri);
+
+  //If no file address was provided, we can move on. There is no caching of the file ongoing
+  if(!fileAddressDatas.length){
+    await migrateInzendingen([ inzending ]);
+  }
+  else {
+    console.log('we need to wait for the cached files of fileAddress');
+  }
+}
+
+
+function getInzendingenToProcess(delta) {
+  const inserts = flatten(delta.map(changeSet => changeSet.inserts));
+  return inserts.filter(isInzendingTriple).map(t => t.subject.value);
+}
+
+function isInzendingTriple(triple) {
+  return triple.predicate.value == 'http://www.w3.org/ns/adms#status'
+    && triple.object.value == "http://data.lblod.info/document-statuses/verstuurd";
+}
+
+function getFileAddressDataToProcess(delta){
+  const inserts = flatten(delta.map(changeSet => changeSet.inserts));
+  return inserts.filter(isFileAddressData).map(t => t.subject.value);
+}
+
+function isFileAddressData(triple){
+  return triple.predicate.value == 'http://mu.semte.ch/vocabularies/ext/fileAddressCacheStatusLabel';
+}
+
+async function areAddressesCached(fileAddressDatas){
+  for(const fileAddressData of fileAddressDatas){
+    if(!fileAddressData.fileAddressStatus){
+      return false;
+    }
+    if(fileAddressData.fileAddressStatusLabel == 'pending'){
+      return false;
+    }
+  }
+  return true;
+}
+
 export {
   migrateInzendingen,
-  removeMigratedData
+  removeMigratedData,
+  processDataFromDelta
 }
