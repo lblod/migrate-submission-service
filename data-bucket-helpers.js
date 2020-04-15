@@ -39,6 +39,7 @@ async function createDataBuckets(inzendingData){
   const dbGraph = namedNode('http://dbGraph');
   const codeListsGraph = namedNode('http://codelists');
   const fileGraph = namedNode('http://mu.semte.ch/graphs/public');
+  const remoteDataObjectGraph = namedNode('http://mu.semte.ch/graphs/public');
   loadCodelists('/app/codelists', store, codeListsGraph);
   rdflibParse( inzendingData, store, sourceGraph.value, 'text/turtle' );
 
@@ -49,15 +50,17 @@ async function createDataBuckets(inzendingData){
   const submission = extractSubmission(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, dbGraph);
 
   const subissionDocument = extractSubmittedDocument(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, dbGraph, submission, formTtlFile);
-  await extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, formTtlGraph, subissionDocument, dbGraph);
+  await extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, formTtlGraph, subissionDocument, remoteDataObjectGraph);
   const formData = extractFormData(inzendingVoorToezicht, store, formTtlGraph, codeListsGraph, dbGraph, submission, subissionDocument, formTtlFile);
   const nTriplesDbGraph = serialize(dbGraph, store, undefined, 'application/n-triples'); //application/n-triples
   const nTriplesFileGraph = serialize(fileGraph, store, undefined, 'application/n-triples'); //application/n-triples
   const turtleFormTtlContent = serialize(formTtlGraph, store, undefined, 'application/n-triples');
+  const nTriplesRemoteDataObjectGraph= serialize(remoteDataObjectGraph, store, undefined, 'application/n-triples');
   return {
     store,
     sourceGraph,
     dbGraph,
+    remoteDataObjectGraph,
     codeListsGraph,
     inzendingVoorToezicht,
     formTtlGraph,
@@ -68,7 +71,8 @@ async function createDataBuckets(inzendingData){
     fileGraph,
     nTriplesDbGraph,
     nTriplesFileGraph,
-    turtleFormTtlContent
+    turtleFormTtlContent,
+    nTriplesRemoteDataObjectGraph
   };
 }
 
@@ -142,7 +146,7 @@ function extractSubmittedDocument(inzendingVoorToezicht, store, sourceGraph, cod
   return newSubDoc;
 }
 
-async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, targetGraph, newSubDoc, dbGraph){
+async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, targetGraph, newSubDoc, publicGraph){
   mapPredicateToNewSubject(store, sourceGraph, DCT('description'),
                            targetGraph, newSubDoc, DCT('description'));
 
@@ -273,24 +277,30 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
     store.add(newSubDoc, DCT('hasPart'), newFileAdd, targetGraph);
     store.add(newFileAdd, RDF('type'), namedNode('http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#RemoteDataObject'), targetGraph);
     //Database and localstore keeps track of the url
-    store.add(newFileAdd, MU('uuid'), addUuid, dbGraph);
-    store.add(newFileAdd, RDF('type'), namedNode('http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#RemoteDataObject'), dbGraph);
+    store.add(newFileAdd, MU('uuid'), addUuid, publicGraph);
+    store.add(newFileAdd, RDF('type'), namedNode('http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#FileDataObject'), publicGraph);
+    store.add(newFileAdd, RDF('type'), namedNode('http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#RemoteDataObject'), publicGraph);
     const address = store.match(url.object, EXT('fileAddress'), undefined, sourceGraph);
     if(address.length){
        // So n-triples charcaters seem to be escaped for special ones. E.g. \u0027
       // SPARQL expects 'decoded/unescaped' data. It won't interpret  \u0027. So we have to do the conversion ourselves
       const unescapedAddress = JSON.parse(`"${address[0].object.value}"`);
-      store.add(newFileAdd, namedNode('http://www.semanticdesktop.org/ontologies/2007/01/19/nie#url'), unescapedAddress, dbGraph);
+      store.add(newFileAdd, namedNode('http://www.semanticdesktop.org/ontologies/2007/01/19/nie#url'), unescapedAddress, publicGraph);
       store.add(newFileAdd, namedNode('http://www.semanticdesktop.org/ontologies/2007/01/19/nie#url'), unescapedAddress, targetGraph);
 
       const cacheStatus = store.match(url.object, EXT('fileAddressCacheStatus'), undefined, sourceGraph)[0].object;
       const status = store.match(cacheStatus, EXT('fileAddressCacheStatusLabel'), undefined, sourceGraph)[0].object;
 
       if(status.value == "dead" || status.value == "failed"){
-        store.add(newFileAdd, ADMS('status'), namedNode('http://lblod.data.gift/file-download-statuses/failure'), dbGraph);
+        store.add(newFileAdd, ADMS('status'), namedNode('http://lblod.data.gift/file-download-statuses/failure'), publicGraph);
       }
       else{
-        store.add(newFileAdd, ADMS('status'), namedNode('http://lblod.data.gift/file-download-statuses/success'), dbGraph);
+        const cachedLogicalFile = store.match(undefined, NIE('dataSource'), url.object, sourceGraph)[0];
+        if(!cachedLogicalFile) return;
+        const cachedPhysFile = store.match(undefined, NIE('dataSource'), cachedLogicalFile.subject, sourceGraph)[0];
+        if(!cachedPhysFile) return;
+        store.add(cachedPhysFile.subject, NIE('dataSource'), newFileAdd ,publicGraph);
+        store.add(newFileAdd, ADMS('status'), namedNode('http://lblod.data.gift/file-download-statuses/success'), publicGraph);
       }
     }
   });
