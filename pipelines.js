@@ -111,7 +111,7 @@ async function processDataFromDelta(delta){
 
   const inzendingenUris = getInzendingenToProcess(delta);
   for(const inzendingUri of inzendingenUris){
-    await processInzendingFromDeltaWithNoFileAddress(inzendingUri);
+    await processInzendingFromDeltaWhichIsComplete(inzendingUri);
   }
   const addressStatuses = getFileAddressDataToProcess(delta);
 
@@ -139,7 +139,7 @@ async function processInzendingFromFileAddressStatus(statusUri){
                                                            undefined,
                                                            undefined,
                                                            undefined,
-                                                           undefined,
+                                                           'http://data.lblod.info/document-statuses/verstuurd',
                                                            true));
       if(!inzendingen.length) return;
       await migrateInzendingen( inzendingen );
@@ -147,14 +147,14 @@ async function processInzendingFromFileAddressStatus(statusUri){
   }
 }
 
-async function processInzendingFromDeltaWithNoFileAddress(inzendingUri){
+async function processInzendingFromDeltaWhichIsComplete(inzendingUri){
   const inzendingen = (await getInzendingVoorToezicht(undefined,
                                                        undefined,
                                                        inzendingUri,
                                                        undefined,
                                                        undefined,
                                                        undefined,
-                                                       undefined,
+                                                       'http://data.lblod.info/document-statuses/verstuurd',
                                                        true));
   if(!inzendingen.length) return;
 
@@ -166,11 +166,14 @@ async function processInzendingFromDeltaWithNoFileAddress(inzendingUri){
   if(!fileAddressDatas.length){
     await migrateInzendingen([ inzending ]);
   }
+  //All adresses are cached, go for it!
+  else if(fileAddressDatas.length && await areAddressesCached(fileAddressDatas)){
+    await migrateInzendingen([ inzending ]);
+  }
   else {
     console.log('we need to wait for the cached files of fileAddress');
   }
 }
-
 
 function getInzendingenToProcess(delta) {
   const inserts = flatten(delta.map(changeSet => changeSet.inserts));

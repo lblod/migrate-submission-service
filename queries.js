@@ -453,8 +453,10 @@ async function getFileAddressDataFromInzending(inzendingUri){
         GRAPH ?g {
           ${sparqlEscapeUri(inzendingUri)} toezicht:fileAddress ?fileAddressUri.
           ?fileAddressUri ext:fileAddress ?fileAddressUrl.
-          OPTIONAL { ?fileAddressUri ext:fileAddressCacheStatus ?fileAddressStatus. }
-          OPTIONAL { ?fileAddressStatus ext:fileAddressCacheStatusLabel ?fileAddressStatusLabel. }
+          OPTIONAL {
+           ?fileAddressUri ext:fileAddressCacheStatus ?fileAddressStatus.
+           ?fileAddressStatus ext:fileAddressCacheStatusLabel ?fileAddressStatusLabel.
+          }
         }
       }
   `;
