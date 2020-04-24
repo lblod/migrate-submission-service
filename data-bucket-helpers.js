@@ -52,6 +52,14 @@ async function createDataBuckets(inzendingData){
   const subissionDocument = extractSubmittedDocument(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, dbGraph, submission, formTtlFile);
   await extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, codeListsGraph, formTtlGraph, subissionDocument, remoteDataObjectGraph);
   const formData = extractFormData(inzendingVoorToezicht, store, formTtlGraph, codeListsGraph, dbGraph, submission, subissionDocument, formTtlFile);
+
+
+  //post-process some data we don't need in the submissiondocument
+  //  EXT('regulationType')
+  //  EXT('decisionType'),
+  store.removeMatches(undefined, EXT('regulationType'), undefined , formTtlGraph);
+  store.removeMatches(undefined, EXT('decisionType'), undefined , formTtlGraph);
+
   const nTriplesDbGraph = serialize(dbGraph, store, undefined, 'application/n-triples'); //application/n-triples
   const nTriplesFileGraph = serialize(fileGraph, store, undefined, 'application/n-triples'); //application/n-triples
   const turtleFormTtlContent = serialize(formTtlGraph, store, undefined, 'application/n-triples');
@@ -197,15 +205,22 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
   const oldBesluitenlijst = namedNode('http://data.lblod.info/DecisionType/46b254008bbca1354e632dc40cf550c6b313e523799cafd7200a48a19e09249f');
   const oldNotulen = namedNode('http://data.lblod.info/DecisionType/5a71a9e79b58c6b095cb2e575c7a397cc1fe80385e4d1deddd66745a03638f9f');
   if(typeInzending.equals(oldAgenda)){
-     store.add(newSubDoc, RDF('type'), getNewCodeListEquivalent(store, codeListsGraph, oldAgenda), targetGraph);
+    store.add(newSubDoc, RDF('type'), getNewCodeListEquivalent(store, codeListsGraph, oldAgenda), targetGraph);
+
+    //for flattened resource
+    store.add(newSubDoc, EXT('decisionType'), getNewCodeListEquivalent(store, codeListsGraph, oldAgenda), targetGraph);
     store.add(newZitting, BESLUIT('heeftAgenda'), newSubDoc, targetGraph);
   }
   else if(typeInzending.equals(oldBesluitenlijst)){
     store.add(newSubDoc, RDF('type'), getNewCodeListEquivalent(store, codeListsGraph, oldBesluitenlijst), targetGraph);
+    //for flattened resource
+    store.add(newSubDoc, EXT('decisionType'), getNewCodeListEquivalent(store, codeListsGraph, oldBesluitenlijst), targetGraph);
     store.add(newZitting, BESLUIT('heeftBesluitenlijst'), newSubDoc, targetGraph);
   }
   else if(typeInzending.equals(oldNotulen)){
     store.add(newSubDoc, RDF('type'), getNewCodeListEquivalent(store, codeListsGraph, oldNotulen), targetGraph);
+    //for flattened resource
+    store.add(newSubDoc, EXT('decisionType'), getNewCodeListEquivalent(store, codeListsGraph, oldNotulen), targetGraph);
     store.add(newZitting, BESLUIT('heeftNotulen'), newSubDoc, targetGraph);
   }
   else {
@@ -214,6 +229,9 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
       throw new Error(`No codelist equivalent found for ${typeInzending.value}, inzending: ${inzendingVoorToezicht.value}`);
     }
     store.add(newSubDoc, RDF('type'), targetObject, targetGraph);
+    //for flattened resource
+    store.add(newSubDoc, EXT('decisionType'), targetObject, targetGraph);
+
     // a very complex path needs to be generated
     const bap = namedNode(`http://data.lblod.info/behandeling-van-agendapunten/${uuid()}`);
     const ap = namedNode(`http://data.lblod.info/agendapunten/${uuid()}`);
@@ -232,6 +250,10 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
   const regulationType = store.match(inzendingVoorToezicht, TOEZICHT('regulationType'), undefined, sourceGraph)[0];
   if(regulationType){
     store.add(newSubDoc, RDF('type'),
+              getNewCodeListEquivalent(store, codeListsGraph, regulationType.object), targetGraph);
+
+    //We will use this in the creation of the lfattend resource (hackerdyhack)
+    store.add(newSubDoc, EXT('regulationType'),
               getNewCodeListEquivalent(store, codeListsGraph, regulationType.object), targetGraph);
   }
 
@@ -333,6 +355,12 @@ function extractFormData(inzendingVoorToezicht, store, sourceGraph, codeListsGra
 
   mapPredicateToNewSubject(store, sourceGraph, RDF('type'),
                            targetGraph, formData, DCT('type'), submissionDocument);
+
+  mapPredicateToNewSubject(store, sourceGraph, EXT('regulationType'),
+                            targetGraph, formData, EXT('regulationType'), submissionDocument);
+
+  mapPredicateToNewSubject(store, sourceGraph, EXT('decisionType'),
+                            targetGraph, formData, EXT('decisionType'), submissionDocument);
 
   mapPredicateToNewSubject(store, sourceGraph, ELI('date_publication'),
                            targetGraph, formData, ELI('date_publication'));
