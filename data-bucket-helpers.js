@@ -91,7 +91,8 @@ function createFileTtlMetaData(store, fileGraph){
   const now = new Date();
 
   store.add(formTtlFile, MU('uuid'), id, fileGraph);
-  store.add(formTtlFile, NFO('fileName'), filename, fileGraph);
+  store.add(formTtlFile, RDF('type'), NFO('FileDataObject'), fileGraph);
+  store.add(formTtlFile, NFO('fileName'), filename, fileGraph);         
   store.add(formTtlFile, DCT('creator'), namedNode('http://lblod.data.gift/services/migrate-submission-service'), fileGraph);
   store.add(formTtlFile, DCT('created'), now, fileGraph);
   store.add(formTtlFile, DCT('modified'), now, fileGraph);
