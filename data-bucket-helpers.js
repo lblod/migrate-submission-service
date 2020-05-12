@@ -32,6 +32,9 @@ import { RDF,
          DBPEDIA
        } from './namespaces';
 
+const ACTIVE_FORM_FILE = process.env.ACTIVE_FORM_FILE;
+const FORM_FILE_TYPE = 'http://data.lblod.gift/concepts/form-file-type';
+
 async function createDataBuckets(inzendingData){
   const store = rdflibGraph();
   const sourceGraph = namedNode('http://source');
@@ -101,6 +104,7 @@ function createFileTtlMetaData(store, fileGraph){
   store.add(formTtlFile, DCT('format'), 'text/turtle', fileGraph);
   store.add(formTtlFile, DBPEDIA('fileExtension'), 'ttl', fileGraph);
   store.add(formTtlFile, DCT('type'), namedNode('http://data.lblod.gift/concepts/form-data-file-type'), fileGraph);
+  store.add(namedNode(ACTIVE_FORM_FILE), DCT('type'), namedNode(FORM_FILE_TYPE), fileGraph);
   return formTtlFile;
 }
 
@@ -146,6 +150,7 @@ function extractSubmittedDocument(inzendingVoorToezicht, store, sourceGraph, cod
   store.add(newSubDoc, MU('uuid'), newUuid, targetGraph);
   store.add(newSubDoc, RDF('type'), EXT('SubmissionDocument'), targetGraph);
   store.add(newSubDoc, DCT('source'), formTtlFile, targetGraph);
+  store.add(newSubDoc, DCT('source'), namedNode(ACTIVE_FORM_FILE), targetGraph);
   //the links need to be there too
   const files = store.match(inzendingVoorToezicht, NIE('hasPart'), undefined, sourceGraph);
   files.forEach(file => {
