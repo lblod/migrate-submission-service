@@ -122,12 +122,14 @@ This is your playground where you can mess with code. There are som debug-helper
 ```
   migrate-submission:
     image: lblod/migrate-submission-service:0.2.0
+    environment:
+      ACTIVE_FORM_FILE: "share://semantic-forms/20200508151443-forms.ttl"
     links:
       - virtuoso:database
     volumes:
       - ./data/files/submissions:/share/submissions
 ```
-Don't forget to map port 80  to a port of your choice.
+Don't forget to map port 80  to a port of your choice. And service will crash if no active form file is provided
 
 # Caveats
 - It is not thread safe, meaning it might do unexpected things when starting multiple jobs at the same time.
