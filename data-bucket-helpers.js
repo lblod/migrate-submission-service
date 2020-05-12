@@ -59,6 +59,7 @@ async function createDataBuckets(inzendingData){
   //  EXT('decisionType'),
   store.removeMatches(undefined, EXT('regulationType'), undefined , formTtlGraph);
   store.removeMatches(undefined, EXT('decisionType'), undefined , formTtlGraph);
+  store.removeMatches(undefined, EXT('taxType'), undefined , formTtlGraph);
 
   const nTriplesDbGraph = serialize(dbGraph, store, undefined, 'application/n-triples'); //application/n-triples
   const nTriplesFileGraph = serialize(fileGraph, store, undefined, 'application/n-triples'); //application/n-triples
@@ -284,7 +285,10 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
 
   const oldTaxType = store.match(inzendingVoorToezicht, TOEZICHT('taxType'), undefined, sourceGraph);
   if(oldTaxType.length){
-    store.add(newSubDoc, LBLODBESLUIT('taxType'), getNewCodeListEquivalent(store, codeListsGraph, oldTaxType[0].object), targetGraph);
+    store.add(newSubDoc, RDF('type'), getNewCodeListEquivalent(store, codeListsGraph, oldTaxType[0].object), targetGraph);
+     //We will use this in the creation of the lfattend resource (hackerdyhack)
+    store.add(newSubDoc, EXT('taxType'),
+              getNewCodeListEquivalent(store, codeListsGraph, oldTaxType[0].object), targetGraph);
   }
 
   const files = store.match(inzendingVoorToezicht, NIE('hasPart'), undefined, sourceGraph);
@@ -359,6 +363,9 @@ function extractFormData(inzendingVoorToezicht, store, sourceGraph, codeListsGra
 
   mapPredicateToNewSubject(store, sourceGraph, EXT('regulationType'),
                             targetGraph, formData, EXT('regulationType'), submissionDocument);
+
+  mapPredicateToNewSubject(store, sourceGraph, EXT('taxType'),
+                            targetGraph, formData, EXT('taxType'), submissionDocument);
 
   mapPredicateToNewSubject(store, sourceGraph, EXT('decisionType'),
                             targetGraph, formData, EXT('decisionType'), submissionDocument);
