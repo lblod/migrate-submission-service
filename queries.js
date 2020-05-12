@@ -584,13 +584,15 @@ async function deleteMigratedInzendingData(inzendingUri){
       BIND(${sparqlEscapeUri(inzendingUri)} as ?inzending)
       GRAPH ?g {
         ?task nuao:involves ?inzending.
-        ?task ?taskP ?taskO.
+        OPTIONAL { ?task ?taskP ?taskO. }
       }
 
       GRAPH ?h {
         ?inzending a toezicht:InzendingVoorToezicht.
-        ?submission <http://purl.org/dc/terms/source> ?inzending.
-        ?submission ?submissionP ?submissionO.
+        OPTIONAL {
+          ?submission <http://purl.org/dc/terms/source> ?inzending.
+          ?submission ?submissionP ?submissionO.
+        }
 
         OPTIONAL {
            ?submission <http://purl.org/dc/terms/subject> ?submittedDoc.
