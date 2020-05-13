@@ -190,8 +190,12 @@ async function extractFormTtlData(inzendingVoorToezicht, store, sourceGraph, cod
   mapPredicateToNewSubject(store, sourceGraph, TOEZICHT('endDate'),
                            targetGraph, newSubDoc, ELI('date_no_longer_in_force'));
 
-  mapPredicateToNewSubject(store, sourceGraph, TOEZICHT('hasExtraTaxRates'),
-                           targetGraph, newSubDoc, LBLODBESLUIT('hasAdditionalTaxRate'));
+  const extraTaxRates = store.match(undefined, TOEZICHT('hasExtraTaxRates'), undefined, sourceGraph)[0];
+
+  if(extraTaxRates){
+    const extraTaxRateValue = literal(extraTaxRates.object.value == 'true' ? 1 : 0, XSD('boolean'));
+    store.add(newSubDoc, LBLODBESLUIT('hasAdditionalTaxRate'), extraTaxRateValue , targetGraph);
+  }
 
   const newZitting = namedNode(`http://data.lblod.info/zittingen/${uuid()}`);
   store.add(newZitting, RDF('type'), EXT('PlaceholderZiting'), targetGraph); //To keep track easily these are actually not real Zittingen
