@@ -21,6 +21,8 @@ import { createDataBuckets } from './data-bucket-helpers';
 import { insertTtlFile, removeFile } from './file-helpers';
 import { calculateMetaSnapshot } from './copied-code/enrich-submission-service/submission-document';
 
+const MAX_DB_RETRY_ATTEMPTS = parseInt(process.env.MAX_DB_RETRY_ATTEMPTS || 20);
+
 async function migrateInzendingen(inzendingen){
   const start = new Date();
   let count = 0;
@@ -29,12 +31,12 @@ async function migrateInzendingen(inzendingen){
   for(let inzending of inzendingen){
     let task = null;
     if(!inzending.task){
-      task = await createTaskForMigration(inzending.inzendingUri);
+      task = await RetryDbOperation(() => createTaskForMigration(inzending.inzendingUri));
     }
     else{
       task = await getTask(inzending.task);
       const retries = task.numberOfRetries ? parseInt(task.numberOfRetries) : 0;
-      await updateTask(task.taskUri, retries + 1, ONGOING);
+      await RetryDbOperation(() => updateTask(task.taskUri, retries + 1, ONGOING));
     }
     try {
       const inzendingTTl = await constructInzendingContentTtl(inzending.inzendingUri);
@@ -45,13 +47,13 @@ async function migrateInzendingen(inzendingen){
       await calculateMetaSnapshot(data.subissionDocument.value);
 
       console.log(`Inserted data for ${inzending.eenheidLabel}`);
-      await updateTask(task.taskUri, 1, FINISHED);
+      await RetryDbOperation(() => updateTask(task.taskUri, 1, FINISHED));
     }
     catch(e){
       const errorMessage = `Error for ${inzending.inzendingUri}: error ${e}`;
       console.log(errorMessage);
       errors.push(errorMessage);
-      await updateTask(task.taskUri, 1, FAILED);
+      await RetryDbOperation(() => updateTask(task.taskUri, 1, FAILED));
     }
     ++count;
     console.log(`---------------- Processed ${count} of ${total} ----------------`);
@@ -82,8 +84,8 @@ async function removeMigratedData(inzendingen){
       const fileDatas = await getMigratedTtlFilesFromInzending(inzending.inzendingUri);
       await deleteMigratedInzendingData(inzending.inzendingUri);
       for(const fileData of fileDatas) {
-        await removeTtlFileMeta(fileData.fileUri);
-        await removeFile(fileData.fileUri);
+        await RetryDbOperation(() => removeTtlFileMeta(fileData.fileUri));
+        await RetryDbOperation(() => removeFile(fileData.fileUri));
       }
       console.log(`Removed data for ${inzending.eenheidLabel}`);
     }
@@ -204,6 +206,26 @@ async function areAddressesCached(fileAddressDatas){
     }
   }
   return true;
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function RetryDbOperation(callback, attempt = 0, maxAttempts = MAX_DB_RETRY_ATTEMPTS, sleepTime= 2000){
+  if(attempt > maxAttempts){
+    throw `Max attempts reached for ${callback.toString()}, giving up`;
+  }
+  try {
+    return await callback();
+  }
+  catch(e){
+    console.log(`Operation failed for ${callback.toString()}, attempt: ${attempt} of ${maxAttempts}`);
+    console.log(`Error: ${e}`);
+    console.log(`Sleeping ${sleepTime} ms`);
+    await sleep(sleepTime);
+    return RetryDbOperation(callback, ++attempt, maxAttempts, sleepTime);
+  }
 }
 
 export {
