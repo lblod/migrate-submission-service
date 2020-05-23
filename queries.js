@@ -78,7 +78,7 @@ async function getInzendingVoorToezicht(formNodeUri,
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX adms: <http://www.w3.org/ns/adms#>
 
-    SELECT ?graph ?inzendingUri ?eenheidLabel ?task WHERE {
+    SELECT DISTINCT ?graph ?inzendingUri ?eenheidLabel ?task WHERE {
       GRAPH ?graph {
         ${inzendingFilter}
         ?inzendingUri a toezicht:InzendingVoorToezicht.
